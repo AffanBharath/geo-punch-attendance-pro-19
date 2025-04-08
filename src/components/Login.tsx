@@ -37,7 +37,7 @@ const Login = () => {
         
         toast({
           title: "Login successful",
-          description: "Welcome back to Geo-Punch Attendance Pro!",
+          description: "Welcome back to SIST - MarkMe!",
         });
         
         navigate("/dashboard");
@@ -67,7 +67,7 @@ const Login = () => {
             <Fingerprint className="h-6 w-6 text-primary" />
           </div>
         </div>
-        <CardTitle className="text-2xl text-center">Login</CardTitle>
+        <CardTitle className="text-2xl text-center">SIST - MarkMe!</CardTitle>
         <CardDescription className="text-center">
           Enter your credentials to access your account
         </CardDescription>
