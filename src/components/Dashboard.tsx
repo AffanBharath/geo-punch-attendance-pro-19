@@ -1,12 +1,13 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { useState, useEffect } from "react";
-import { CalendarIcon, ClockIcon, FileText, MapPinIcon, UserRound } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
+import { CalendarIcon, ClockIcon, FileText, MapPinIcon, UserRound, Camera } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserData {
   id: string;
@@ -15,6 +16,7 @@ interface UserData {
   role: string;
   department: string;
   joinDate: string;
+  profilePic?: string;
 }
 
 const Dashboard = () => {
@@ -28,9 +30,11 @@ const Dashboard = () => {
     streak: 5,
   });
   
-  // Add state for dialogs
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [changePhotoOpen, setChangePhotoOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   useEffect(() => {
     const storedUser = localStorage.getItem('geoAttendanceUser');
@@ -66,27 +70,22 @@ const Dashboard = () => {
     hour12: true,
   });
 
-  // Calculate salary values
   const salaryBase = 3000;
   const earnedSalary = (attendance.present / attendance.total) * salaryBase;
   const deduction = (attendance.absent / attendance.total) * salaryBase;
 
-  // Generate current month days for calendar view
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
   
-  // Get days in current month
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   
-  // Generate array of present/absent days for the month
   const generateMonthData = () => {
     const monthDays = [];
     for (let i = 1; i <= daysInMonth; i++) {
-      // For demo purposes, let's say weekends are absent, and a few random days are leave
       const day = new Date(currentYear, currentMonth, i);
       const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-      const isLeave = i === 15 || i === 16; // Example leave days
+      const isLeave = i === 15 || i === 16;
       const status = isLeave ? 'leave' : isWeekend ? 'absent' : 'present';
       
       monthDays.push({
@@ -99,6 +98,35 @@ const Dashboard = () => {
   };
   
   const monthData = generateMonthData();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (userData) {
+          const updatedUserData = {
+            ...userData,
+            profilePic: reader.result as string
+          };
+          
+          setUserData(updatedUserData);
+          localStorage.setItem('geoAttendanceUser', JSON.stringify(updatedUserData));
+          
+          toast({
+            title: "Profile picture updated",
+            description: "Your profile picture has been updated successfully."
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+      setChangePhotoOpen(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="space-y-6">
@@ -120,14 +148,28 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4">
-              <Avatar 
-                className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => setUserProfileOpen(true)}
-              >
-                <AvatarFallback className="text-xl bg-primary text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar 
+                  className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity" 
+                  onClick={() => setUserProfileOpen(true)}
+                >
+                  {userData?.profilePic ? (
+                    <AvatarImage src={userData.profilePic} alt={userData?.name || "User"} />
+                  ) : (
+                    <AvatarFallback className="text-xl bg-primary text-primary-foreground">
+                      {initials}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => setChangePhotoOpen(true)}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
               <div>
                 <p className="text-2xl font-bold">{userData?.name || "User"}</p>
                 <p className="text-sm text-muted-foreground">{userData?.role || "Role"} - {userData?.department || "Department"}</p>
@@ -249,7 +291,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* User Profile Dialog */}
       <Dialog open={userProfileOpen} onOpenChange={setUserProfileOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -261,9 +302,13 @@ const Dashboard = () => {
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
               <Avatar className="h-24 w-24">
-                <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
+                {userData?.profilePic ? (
+                  <AvatarImage src={userData.profilePic} alt={userData?.name || "User"} />
+                ) : (
+                  <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                    {initials}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </div>
             <div className="space-y-3">
@@ -296,7 +341,6 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Calendar Dialog */}
       <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -313,12 +357,10 @@ const Dashboard = () => {
                 </div>
               ))}
               
-              {/* Fill in empty spaces for first week */}
               {Array.from({ length: new Date(currentYear, currentMonth, 1).getDay() }).map((_, i) => (
                 <div key={`empty-${i}`} className="p-2"></div>
               ))}
               
-              {/* Render days */}
               {monthData.map((day) => (
                 <div 
                   key={day.date} 
@@ -367,6 +409,45 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={changePhotoOpen} onOpenChange={setChangePhotoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Profile Picture</DialogTitle>
+            <DialogDescription>
+              Upload a new profile picture
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center">
+              <Avatar className="h-24 w-24">
+                {userData?.profilePic ? (
+                  <AvatarImage src={userData.profilePic} alt={userData?.name || "User"} />
+                ) : (
+                  <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                    {initials}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </div>
+            <input 
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              className="hidden" 
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangePhotoOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={triggerFileInput}>
+              Upload New Picture
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

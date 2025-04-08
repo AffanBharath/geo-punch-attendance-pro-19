@@ -47,7 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="font-bold text-lg">GeoPunch Pro</h1>
+            <h1 className="font-bold text-lg">SIST - MarkMe!</h1>
             <div className="w-9"></div> {/* Spacer for alignment */}
           </div>
         )}

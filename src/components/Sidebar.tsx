@@ -67,7 +67,7 @@ const Sidebar = () => {
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
         {!collapsed && (
           <h1 className="text-sidebar-foreground font-bold text-lg">
-            GeoPunch Pro
+            SIST - MarkMe!
           </h1>
         )}
         <Button
