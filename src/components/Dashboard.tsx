@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -58,6 +59,11 @@ const Dashboard = () => {
     second: '2-digit',
     hour12: true,
   });
+
+  // Calculate salary values
+  const salaryBase = 3000;
+  const earnedSalary = (attendance.present / attendance.total) * salaryBase;
+  const deduction = (attendance.absent / attendance.total) * salaryBase;
 
   return (
     <div className="space-y-6">
@@ -138,7 +144,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <p className="text-sm">Salary Progress</p>
                 <p className="text-sm font-medium">
-                  ${((attendance.present / attendance.total) * 3000).toFixed(2)} of ${3000.toFixed(2)}
+                  ${earnedSalary.toFixed(2)} of ${salaryBase.toFixed(2)}
                 </p>
               </div>
               <Progress value={(attendance.present / attendance.total) * 100} className="h-2" />
@@ -146,15 +152,15 @@ const Dashboard = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <p>Base Salary</p>
-                <p className="font-medium">$3,000.00</p>
+                <p className="font-medium">${salaryBase.toFixed(2)}</p>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <p>Attendance Deduction</p>
-                <p className="font-medium">-${((attendance.absent / attendance.total) * 3000).toFixed(2)}</p>
+                <p className="font-medium">-${deduction.toFixed(2)}</p>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <p>Estimated Net</p>
-                <p className="font-medium">${((attendance.present / attendance.total) * 3000).toFixed(2)}</p>
+                <p className="font-medium">${earnedSalary.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
