@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -27,13 +26,11 @@ const Dashboard = () => {
   });
   
   useEffect(() => {
-    // Get user data from localStorage
     const storedUser = localStorage.getItem('geoAttendanceUser');
     if (storedUser) {
       setUserData(JSON.parse(storedUser));
     }
     
-    // Update time
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -141,7 +138,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <p className="text-sm">Salary Progress</p>
                 <p className="text-sm font-medium">
-                  ${((attendance.present / attendance.total) * 3000).toFixed(2)} / ${3000.toFixed(2)}
+                  ${((attendance.present / attendance.total) * 3000).toFixed(2)} of ${3000.toFixed(2)}
                 </p>
               </div>
               <Progress value={(attendance.present / attendance.total) * 100} className="h-2" />
