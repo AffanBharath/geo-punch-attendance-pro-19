@@ -1,16 +1,14 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, FileExcel, Calendar, Download } from "lucide-react";
+import { FileText, FileSpreadsheet, Calendar, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Reports = () => {
   const { toast } = useToast();
   
   const handleDownload = (type: string, period: string) => {
-    // In a real app, this would generate and download a file
     toast({
       title: "Report Download Initiated",
       description: `Your ${period} ${type} report would be downloaded`,
@@ -70,7 +68,7 @@ const Reports = () => {
                       className="flex items-center gap-1"
                       onClick={() => handleDownload("attendance", "daily")}
                     >
-                      <FileExcel className="h-3.5 w-3.5" />
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
                       <span>Excel</span>
                     </Button>
                     <Button 
@@ -110,7 +108,7 @@ const Reports = () => {
                       className="flex items-center gap-1"
                       onClick={() => handleDownload("summary", "monthly")}
                     >
-                      <FileExcel className="h-3.5 w-3.5" />
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
                       <span>Excel</span>
                     </Button>
                     <Button 

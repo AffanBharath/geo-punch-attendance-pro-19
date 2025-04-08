@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 import {
   Calendar,
   FileText,
-  FileExcel,
+  FileSpreadsheet,
   Fingerprint,
   LogOut,
   UserRound,
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 const Sidebar = () => {
@@ -52,7 +52,7 @@ const Sidebar = () => {
     },
     {
       title: "Reports",
-      icon: <FileExcel className="h-5 w-5" />,
+      icon: <FileSpreadsheet className="h-5 w-5" />,
       path: "/reports",
     },
   ];

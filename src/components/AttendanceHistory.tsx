@@ -3,9 +3,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MapPin, Clock, Calendar, FileExcel } from "lucide-react";
+import { MapPin, Clock, Calendar, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface AttendanceRecord {
   userId: string;
@@ -67,7 +67,7 @@ const AttendanceHistory = () => {
             <CardDescription>View and search your attendance records</CardDescription>
           </div>
           <Button variant="outline" onClick={handleExport} className="flex items-center gap-2">
-            <FileExcel className="h-4 w-4" />
+            <FileSpreadsheet className="h-4 w-4" />
             <span>Export</span>
           </Button>
         </div>
