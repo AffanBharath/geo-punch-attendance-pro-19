@@ -141,7 +141,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <p className="text-sm">Salary Progress</p>
                 <p className="text-sm font-medium">
-                  ${((attendance.present / attendance.total) * 3000).toFixed(2)}/${3000.toFixed(2)}
+                  ${((attendance.present / attendance.total) * 3000).toFixed(2)} / ${3000.toFixed(2)}
                 </p>
               </div>
               <Progress value={(attendance.present / attendance.total) * 100} className="h-2" />
