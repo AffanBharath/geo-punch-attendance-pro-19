@@ -1,6 +1,7 @@
 
 import { ToastProvider, ToastViewport } from "@/components/ui/toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -11,7 +12,6 @@ import AttendancePage from "./pages/AttendancePage";
 import SalaryPage from "./pages/SalaryPage";
 import ReportPage from "./pages/ReportPage";
 import NotFound from "./pages/NotFound";
-import { Toaster } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient();
 
