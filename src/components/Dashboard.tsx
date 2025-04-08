@@ -5,6 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
 import { CalendarIcon, ClockIcon, FileText, MapPinIcon, UserRound } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
 
 interface UserData {
   id: string;
@@ -25,6 +27,10 @@ const Dashboard = () => {
     total: 21,
     streak: 5,
   });
+  
+  // Add state for dialogs
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   
   useEffect(() => {
     const storedUser = localStorage.getItem('geoAttendanceUser');
@@ -65,6 +71,35 @@ const Dashboard = () => {
   const earnedSalary = (attendance.present / attendance.total) * salaryBase;
   const deduction = (attendance.absent / attendance.total) * salaryBase;
 
+  // Generate current month days for calendar view
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+  
+  // Get days in current month
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  
+  // Generate array of present/absent days for the month
+  const generateMonthData = () => {
+    const monthDays = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      // For demo purposes, let's say weekends are absent, and a few random days are leave
+      const day = new Date(currentYear, currentMonth, i);
+      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      const isLeave = i === 15 || i === 16; // Example leave days
+      const status = isLeave ? 'leave' : isWeekend ? 'absent' : 'present';
+      
+      monthDays.push({
+        date: i,
+        status,
+        dayName: day.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    }
+    return monthDays;
+  };
+  
+  const monthData = generateMonthData();
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -85,7 +120,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4">
-              <Avatar className="h-20 w-20">
+              <Avatar 
+                className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity" 
+                onClick={() => setUserProfileOpen(true)}
+              >
                 <AvatarFallback className="text-xl bg-primary text-primary-foreground">
                   {initials}
                 </AvatarFallback>
@@ -102,7 +140,10 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Attendance Status</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            <CalendarIcon 
+              className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-primary transition-colors" 
+              onClick={() => setCalendarOpen(true)}
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -207,6 +248,127 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* User Profile Dialog */}
+      <Dialog open={userProfileOpen} onOpenChange={setUserProfileOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Profile</DialogTitle>
+            <DialogDescription>
+              Detailed information about your profile
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center">
+              <Avatar className="h-24 w-24">
+                <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                <p className="font-medium">{userData?.name || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Email</p>
+                <p className="font-medium">{userData?.email || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Employee ID</p>
+                <p className="font-medium">{userData?.id || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Role</p>
+                <p className="font-medium">{userData?.role || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Department</p>
+                <p className="font-medium">{userData?.department || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Join Date</p>
+                <p className="font-medium">{userData?.joinDate || "Not provided"}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Calendar Dialog */}
+      <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{currentTime.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Attendance</DialogTitle>
+            <DialogDescription>
+              Your attendance record for the current month
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="text-xs font-medium text-muted-foreground p-2">
+                  {day}
+                </div>
+              ))}
+              
+              {/* Fill in empty spaces for first week */}
+              {Array.from({ length: new Date(currentYear, currentMonth, 1).getDay() }).map((_, i) => (
+                <div key={`empty-${i}`} className="p-2"></div>
+              ))}
+              
+              {/* Render days */}
+              {monthData.map((day) => (
+                <div 
+                  key={day.date} 
+                  className={`text-xs p-2 rounded-full flex items-center justify-center aspect-square ${
+                    day.status === 'present' ? 'bg-green-100 text-green-700' : 
+                    day.status === 'absent' ? 'bg-red-100 text-red-700' : 
+                    'bg-yellow-100 text-yellow-700'
+                  }`}
+                >
+                  {day.date}
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-center gap-6 pt-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-100"></div>
+                <span className="text-xs">Present</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-100"></div>
+                <span className="text-xs">Absent</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-yellow-100"></div>
+                <span className="text-xs">Leave</span>
+              </div>
+            </div>
+            
+            <div className="pt-2">
+              <div className="flex justify-between text-sm">
+                <span>Total Working Days:</span>
+                <span className="font-medium">{attendance.total}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Present Days:</span>
+                <span className="font-medium text-green-600">{attendance.present}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Absent Days:</span>
+                <span className="font-medium text-red-600">{attendance.absent}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Leave Days:</span>
+                <span className="font-medium text-yellow-600">{attendance.leave}</span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
