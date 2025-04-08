@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
-import { CalendarIcon, ClockIcon, MapPinIcon, UserRound } from "lucide-react";
+import { CalendarIcon, ClockIcon, FileText, MapPinIcon, UserRound } from "lucide-react";
 
 interface UserData {
   id: string;
