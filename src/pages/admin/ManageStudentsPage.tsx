@@ -365,15 +365,15 @@ const ManageStudentsPage = () => {
                   <div className="grid grid-cols-3 gap-4 pt-2">
                     <div className="p-4 bg-green-50 rounded-lg text-center">
                       <p className="text-2xl font-bold text-green-600">75%</p>
-                      <p className="text-xs text-muted-foreground">Good Attendance<br/>(>85%)</p>
+                      <p className="text-xs text-muted-foreground">Good Attendance{"\n"}({">"}{85}%)</p>
                     </div>
                     <div className="p-4 bg-yellow-50 rounded-lg text-center">
                       <p className="text-2xl font-bold text-yellow-600">20%</p>
-                      <p className="text-xs text-muted-foreground">Average<br/>(75%-85%)</p>
+                      <p className="text-xs text-muted-foreground">Average{"\n"}(75%-85%)</p>
                     </div>
                     <div className="p-4 bg-red-50 rounded-lg text-center">
                       <p className="text-2xl font-bold text-red-600">5%</p>
-                      <p className="text-xs text-muted-foreground">Poor<br/>(<75%)</p>
+                      <p className="text-xs text-muted-foreground">Poor{"\n"}({"<"}75%)</p>
                     </div>
                   </div>
                   
