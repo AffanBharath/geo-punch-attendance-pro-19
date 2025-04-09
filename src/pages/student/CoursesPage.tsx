@@ -195,9 +195,9 @@ const CoursesPage = () => {
                             <span>Due: {formatDate(assignment.dueDate)}</span>
                           </div>
                           <Badge variant={
-                            assignment.status === "submitted" ? "success" : 
+                            assignment.status === "submitted" ? "default" : 
                             assignment.status === "pending" ? "outline" : "destructive"
-                          }>
+                          } className={assignment.status === "submitted" ? "bg-green-600 hover:bg-green-700" : ""}>
                             {assignment.status === "submitted" ? "Submitted" : 
                              assignment.status === "pending" ? "Pending" : "Late"}
                           </Badge>

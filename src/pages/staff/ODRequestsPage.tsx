@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { CalendarRange, Clock, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -320,7 +320,7 @@ const ODRequestsPage = () => {
                               <Dialog>
                                 <DialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="gap-1.5">
-                                    <Badge variant="success">Approved</Badge>
+                                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">Approved</Badge>
                                     <span className="sr-only">View Details</span>
                                   </Button>
                                 </DialogTrigger>
@@ -376,7 +376,7 @@ const ODRequestsPage = () => {
                                       </div>
                                       <div className="space-y-1">
                                         <p className="text-sm font-medium">Status</p>
-                                        <Badge variant="success">Approved</Badge>
+                                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">Approved</Badge>
                                       </div>
                                     </div>
                                     {request.reviewedOn && (
