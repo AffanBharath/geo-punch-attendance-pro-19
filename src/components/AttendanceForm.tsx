@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, MapPin, KeyRound, RefreshCcw } from "lucide-react";
+import { Fingerprint, MapPin, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,21 @@ const AttendanceForm = () => {
   const [loading, setLoading] = useState(false);
   const [inProgress, setInProgress] = useState(false);
   const [isWithinRadius, setIsWithinRadius] = useState<boolean | null>(null);
-  const [passcode, setPasscode] = useState("");
-  const [generatedPasscode, setGeneratedPasscode] = useState("");
-  const [passcodeValid, setPasscodeValid] = useState<boolean | null>(null);
+  const [registeredKey, setRegisteredKey] = useState("");
+  const [keyValid, setKeyValid] = useState<boolean | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Office location (example)
-  const officeLocation = { lat: 37.7749, lng: -122.4194 };
+  // Department location (example - this would come from a database in a real application)
+  const departmentLocation = { lat: 12.8701, lng: 80.2231 }; // Example coordinates for Sathyabama University
   const geoFencingRadius = 100; // in meters
+  
+  // Pre-registered keys (in a real app, these would be securely stored and validated against a database)
+  const validKeys = {
+    student: "SIST-STU-2025",
+    staff: "SIST-STAFF-2025",
+    admin: "SIST-ADMIN-2025"
+  };
 
   useEffect(() => {
     // Get current location
@@ -39,14 +45,11 @@ const AttendanceForm = () => {
           const distance = calculateDistance(
             currentLocation.lat,
             currentLocation.lng,
-            officeLocation.lat,
-            officeLocation.lng
+            departmentLocation.lat,
+            departmentLocation.lng
           );
           
           setIsWithinRadius(distance <= geoFencingRadius);
-          
-          // Generate random passcode for demo purposes
-          generateRandomPasscode();
         },
         (error) => {
           toast({
@@ -64,17 +67,6 @@ const AttendanceForm = () => {
       });
     }
   }, []);
-
-  const generateRandomPasscode = () => {
-    // Generate a 6-digit passcode for demo
-    const newPasscode = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedPasscode(newPasscode);
-    
-    toast({
-      title: "New Passcode Generated",
-      description: `Your attendance passcode is: ${newPasscode}`,
-    });
-  };
 
   // Calculate distance between two points using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -124,7 +116,7 @@ const AttendanceForm = () => {
         toast({
           variant: "destructive",
           title: "Geofencing Error",
-          description: "You are outside the allowed radius for attendance",
+          description: "You are outside the department location for attendance",
         });
       }
       
@@ -164,7 +156,7 @@ const AttendanceForm = () => {
         toast({
           variant: "destructive",
           title: "Geofencing Error",
-          description: "You are outside the allowed radius for attendance",
+          description: "You are outside the department location for attendance",
         });
       }
       
@@ -173,14 +165,21 @@ const AttendanceForm = () => {
     }, 2000);
   };
 
-  const handlePasscodeSubmit = (type: 'in' | 'out') => {
+  const handleKeySubmit = (type: 'in' | 'out') => {
     setLoading(true);
     
-    // In a real application, this would be validated against a server
-    const isValid = passcode === generatedPasscode;
-    setPasscodeValid(isValid);
+    // In a real application, this would validate against a secure database
+    // Here we're just doing a simple validation based on user role
+    const validKey = user?.role === 'admin' 
+      ? validKeys.admin 
+      : user?.role === 'staff' 
+      ? validKeys.staff 
+      : validKeys.student;
     
-    if (isValid) {
+    const isValid = registeredKey === validKey;
+    setKeyValid(isValid);
+    
+    if (isValid && isWithinRadius) {
       const now = new Date();
       const attendanceRecord = {
         userId: user?.id || "1",
@@ -190,7 +189,7 @@ const AttendanceForm = () => {
         type: type === 'in' ? "Check In" : "Check Out",
         location: location,
         timestamp: now.getTime(),
-        method: "Passcode"
+        method: "Pre-registered Key"
       };
       
       // Store in local storage
@@ -200,21 +199,33 @@ const AttendanceForm = () => {
       
       toast({
         title: type === 'in' ? "Check-in Successful" : "Check-out Successful",
-        description: `You have ${type === 'in' ? 'checked in' : 'checked out'} at ${now.toLocaleTimeString()} using passcode`,
+        description: `You have ${type === 'in' ? 'checked in' : 'checked out'} at ${now.toLocaleTimeString()} using your pre-registered key`,
       });
       
       // Reset form
-      setPasscode("");
-      setPasscodeValid(null);
+      setRegisteredKey("");
+      setKeyValid(null);
+    } else if (!isWithinRadius) {
+      toast({
+        variant: "destructive",
+        title: "Location Error",
+        description: "You must be at the department location to mark attendance",
+      });
     } else {
       toast({
         variant: "destructive",
-        title: "Invalid Passcode",
-        description: "The passcode you entered is incorrect. Please try again.",
+        title: "Invalid Key",
+        description: "The key you entered is incorrect. Please try again.",
       });
     }
     
     setLoading(false);
+  };
+
+  const getCurrentUserKey = () => {
+    if (user?.role === 'admin') return validKeys.admin;
+    if (user?.role === 'staff') return validKeys.staff;
+    return validKeys.student;
   };
 
   return (
@@ -222,14 +233,14 @@ const AttendanceForm = () => {
       <CardHeader>
         <CardTitle>Record Attendance</CardTitle>
         <CardDescription>
-          Use fingerprint authentication or passcode to punch in/out
+          Use fingerprint authentication or pre-registered key to punch in/out
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="fingerprint" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="fingerprint">Fingerprint</TabsTrigger>
-            <TabsTrigger value="passcode">Passcode</TabsTrigger>
+            <TabsTrigger value="key">Pre-registered Key</TabsTrigger>
           </TabsList>
           
           <TabsContent value="fingerprint" className="space-y-4">
@@ -277,8 +288,8 @@ const AttendanceForm = () => {
                     {isWithinRadius === null
                       ? "Getting your location..."
                       : isWithinRadius
-                      ? "You're within the office geofence"
-                      : "Warning: You're outside the office geofence"}
+                      ? "You're within the department geofence"
+                      : "Warning: You're outside the department geofence"}
                   </span>
                 </div>
                 
@@ -293,21 +304,21 @@ const AttendanceForm = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="passcode" className="space-y-4">
+          <TabsContent value="key" className="space-y-4">
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative">
                 <div className={`w-40 h-40 rounded-full flex items-center justify-center ${
-                  passcodeValid === true
+                  keyValid === true
                     ? "bg-green-100"
-                    : passcodeValid === false
+                    : keyValid === false
                     ? "bg-red-100"
                     : "bg-blue-100"
                 }`}>
                   <KeyRound
                     className={`h-20 w-20 ${
-                      passcodeValid === true
+                      keyValid === true
                         ? "text-green-500"
-                        : passcodeValid === false
+                        : keyValid === false
                         ? "text-red-500"
                         : "text-blue-500"
                     }`}
@@ -317,47 +328,38 @@ const AttendanceForm = () => {
 
               <div className="w-full space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="passcode">Enter Attendance Passcode</Label>
+                  <Label htmlFor="registeredKey">Enter Your Pre-registered Key</Label>
                   <div className="flex gap-2">
                     <Input
-                      id="passcode"
-                      value={passcode}
-                      onChange={(e) => setPasscode(e.target.value)}
-                      placeholder="Enter 6-digit code"
+                      id="registeredKey"
+                      value={registeredKey}
+                      onChange={(e) => setRegisteredKey(e.target.value)}
+                      placeholder="Enter your key"
                       className="flex-1"
-                      maxLength={6}
                     />
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={generateRandomPasscode}
-                      title="Generate new passcode"
-                    >
-                      <RefreshCcw className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
                 
                 <div className="text-center text-sm">
                   <p>
-                    Current passcode: <span className="font-bold">{generatedPasscode}</span>
+                    Your key: <span className="font-bold">{getCurrentUserKey()}</span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    (For demo purposes only - in a real app, this would be generated by admins)
+                    (For demo purposes only - in a real app, this would be securely stored)
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <Button
-                    disabled={loading || !passcode}
-                    onClick={() => handlePasscodeSubmit('in')}
+                    disabled={loading || !registeredKey || !isWithinRadius}
+                    onClick={() => handleKeySubmit('in')}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Check In
                   </Button>
                   <Button
-                    disabled={loading || !passcode}
-                    onClick={() => handlePasscodeSubmit('out')}
+                    disabled={loading || !registeredKey || !isWithinRadius}
+                    onClick={() => handleKeySubmit('out')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Check Out

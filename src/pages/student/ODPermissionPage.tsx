@@ -1,314 +1,402 @@
 
-import React, { useState } from 'react';
-import RoleLayout from "@/components/RoleLayout";
-import { 
-  Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter
-} from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
-import { 
-  CalendarIcon, Clock, FileText, ClipboardList, CheckCircle2, XCircle
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Popover, PopoverContent, PopoverTrigger 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from 'date-fns';
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon, FileText, Clock, Check, X } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-type ODRequestStatus = 'pending' | 'approved' | 'rejected';
+// Define form validation schema
+const formSchema = z.object({
+  subject: z.string().min(5, {
+    message: "Subject must be at least 5 characters.",
+  }),
+  reason: z.string().min(10, {
+    message: "Reason must be at least 10 characters.",
+  }),
+  startDate: z.date({
+    required_error: "A start date is required.",
+  }),
+  endDate: z.date({
+    required_error: "An end date is required.",
+  }),
+  supportingDetails: z.string().optional(),
+});
 
+// OD Request interface
 interface ODRequest {
   id: string;
   studentId: string;
   studentName: string;
-  fromDate: Date;
-  toDate: Date;
+  subject: string;
   reason: string;
-  status: ODRequestStatus;
-  createdAt: Date;
+  startDate: Date;
+  endDate: Date;
+  supportingDetails?: string;
+  status: "pending" | "approved" | "rejected";
+  submittedOn: Date;
+  reviewedOn?: Date;
   reviewedBy?: string;
-  reviewedAt?: Date;
   comments?: string;
 }
 
 const ODPermissionPage = () => {
-  const { user } = useAuth();
+  const [requests, setRequests] = useState<ODRequest[]>([]);
   const { toast } = useToast();
-  const [fromDate, setFromDate] = useState<Date | undefined>(new Date());
-  const [toDate, setToDate] = useState<Date | undefined>(new Date());
-  const [reason, setReason] = useState('');
-  const [comments, setComments] = useState('');
-  const [isFromOpen, setIsFromOpen] = useState(false);
-  const [isToOpen, setIsToOpen] = useState(false);
-  
-  // Mock data for OD requests
-  const [odRequests, setOdRequests] = useState<ODRequest[]>([
-    {
-      id: "1",
-      studentId: user?.studentId || "CS2023001",
-      studentName: user?.name || "Student User",
-      fromDate: new Date(2025, 3, 5),
-      toDate: new Date(2025, 3, 6),
-      reason: "Medical appointment",
-      status: 'approved',
-      createdAt: new Date(2025, 3, 3),
-      reviewedBy: "Prof. Johnson",
-      reviewedAt: new Date(2025, 3, 4),
-      comments: "Documentation verified"
+  const { user } = useAuth();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      subject: "",
+      reason: "",
+      supportingDetails: "",
     },
-    {
-      id: "2",
-      studentId: user?.studentId || "CS2023001",
-      studentName: user?.name || "Student User",
-      fromDate: new Date(2025, 3, 10),
-      toDate: new Date(2025, 3, 11),
-      reason: "Participation in tech conference",
-      status: 'rejected',
-      createdAt: new Date(2025, 3, 7),
-      reviewedBy: "Prof. Williams",
-      reviewedAt: new Date(2025, 3, 8),
-      comments: "Insufficient supporting documentation"
-    },
-    {
-      id: "3",
-      studentId: user?.studentId || "CS2023001",
-      studentName: user?.name || "Student User",
-      fromDate: new Date(2025, 3, 15),
-      toDate: new Date(2025, 3, 15),
-      reason: "Family emergency",
-      status: 'pending',
-      createdAt: new Date(2025, 3, 14),
+  });
+
+  useEffect(() => {
+    // Load existing OD requests from localStorage
+    const storedRequests = localStorage.getItem("odRequests");
+    if (storedRequests) {
+      // Parse and convert date strings back to Date objects
+      const parsedRequests = JSON.parse(storedRequests, (key, value) => {
+        if (key === "startDate" || key === "endDate" || key === "submittedOn" || key === "reviewedOn") {
+          return value ? new Date(value) : null;
+        }
+        return value;
+      });
+      
+      // Filter requests for the current user
+      const userRequests = parsedRequests.filter(
+        (req: ODRequest) => req.studentId === user?.id
+      );
+      setRequests(userRequests);
     }
-  ]);
-  
-  const handleSubmitODRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!fromDate || !toDate || !reason) {
+  }, [user]);
+
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    if (!user) {
       toast({
-        title: "Missing Information",
-        description: "Please fill all required fields",
-        variant: "destructive"
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "You must be logged in to submit an OD request.",
       });
       return;
     }
-    
-    if (fromDate > toDate) {
+
+    // Validate dates
+    if (data.endDate < data.startDate) {
       toast({
-        title: "Invalid Dates",
-        description: "From date cannot be after To date",
-        variant: "destructive"
+        variant: "destructive",
+        title: "Date Error",
+        description: "End date cannot be before start date.",
       });
       return;
     }
-    
-    // In a real app, this would be an API call
-    const newODRequest: ODRequest = {
-      id: `${odRequests.length + 1}`,
-      studentId: user?.studentId || "CS2023001",
-      studentName: user?.name || "Student User",
-      fromDate: fromDate,
-      toDate: toDate,
-      reason: reason,
-      status: 'pending',
-      createdAt: new Date(),
+
+    // Create new OD request
+    const newRequest: ODRequest = {
+      id: Date.now().toString(),
+      studentId: user.id,
+      studentName: user.name,
+      subject: data.subject,
+      reason: data.reason,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      supportingDetails: data.supportingDetails,
+      status: "pending",
+      submittedOn: new Date(),
     };
+
+    // Get existing requests
+    const storedRequests = localStorage.getItem("odRequests");
+    const allRequests = storedRequests ? JSON.parse(storedRequests) : [];
     
-    setOdRequests([newODRequest, ...odRequests]);
-    setReason('');
+    // Add new request
+    allRequests.push(newRequest);
+    localStorage.setItem("odRequests", JSON.stringify(allRequests));
+    
+    // Update local state
+    setRequests([...requests, newRequest]);
+    
+    // Reset form
+    form.reset();
     
     toast({
       title: "OD Request Submitted",
-      description: "Your request has been submitted for review",
+      description: "Your OD permission request has been submitted successfully.",
     });
   };
-  
-  const getStatusBadgeClass = (status: ODRequestStatus) => {
+
+  // Format date range for display
+  const formatDateRange = (start: Date, end: Date) => {
+    if (format(start, "PP") === format(end, "PP")) {
+      return format(start, "PP");
+    }
+    return `${format(start, "PP")} to ${format(end, "PP")}`;
+  };
+
+  // Get status badge color
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved':
-        return "bg-green-100 text-green-800";
-      case 'rejected':
-        return "bg-red-100 text-red-800";
+      case "approved":
+        return <Badge className="bg-green-500">Approved</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-500">Rejected</Badge>;
       default:
-        return "bg-yellow-100 text-yellow-800";
+        return <Badge className="bg-yellow-500">Pending</Badge>;
     }
   };
 
   return (
-    <RoleLayout>
+    <Layout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight text-student-primary">On-Duty Permission</h1>
-        
-        <Tabs defaultValue="apply">
-          <TabsList>
-            <TabsTrigger value="apply">Apply for OD</TabsTrigger>
-            <TabsTrigger value="history">Request History</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="apply" className="space-y-4">
-            <Card className="border-student-primary/20">
-              <CardHeader>
-                <CardTitle>Request On-Duty Permission</CardTitle>
-                <CardDescription>
-                  Submit a request for on-duty permission that will be reviewed by your class counselor
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleSubmitODRequest}>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">From Date</label>
-                      <Popover open={isFromOpen} onOpenChange={setIsFromOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {fromDate ? format(fromDate, 'PPP') : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={(date) => {
-                              setFromDate(date);
-                              setIsFromOpen(false);
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">To Date</label>
-                      <Popover open={isToOpen} onOpenChange={setIsToOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {toDate ? format(toDate, 'PPP') : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={toDate}
-                            onSelect={(date) => {
-                              setToDate(date);
-                              setIsToOpen(false);
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Reason for OD</label>
-                    <Textarea 
-                      placeholder="Please provide a detailed explanation..."
-                      className="min-h-[120px]"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      required
+        <h1 className="text-3xl font-bold tracking-tight">OD Permission</h1>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Request OD Permission</CardTitle>
+              <CardDescription>
+                Submit a request for On-Duty permission to attend events, programs or other academic activities.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Conference Attendance" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Brief subject of your OD request
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>From Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date < new Date(new Date().setHours(0, 0, 0, 0))
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>To Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date < new Date(new Date().setHours(0, 0, 0, 0))
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Supporting Documents (optional)</label>
-                    <div className="border-2 border-dashed rounded-md p-6 text-center">
-                      <FileText className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Drop files here or click to upload</p>
-                        <p className="text-xs text-muted-foreground">Support for medical certificates, event invitations, etc.</p>
-                      </div>
-                      <Input 
-                        type="file" 
-                        className="hidden" 
-                      />
-                      <Button variant="outline" size="sm" className="mt-4">
-                        Select Files
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="bg-student-primary hover:bg-student-primary/90">
-                    Submit Request
+
+                  <FormField
+                    control={form.control}
+                    name="reason"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reason</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Explain why you need OD permission"
+                            className="min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Provide detailed explanation for your OD request
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supportingDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supporting Details (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Event details, venue, organizer information, etc."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="w-full">
+                    Submit OD Request
                   </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="history" className="space-y-4">
-            <Card className="border-student-primary/20">
-              <CardHeader>
-                <CardTitle>OD Request History</CardTitle>
-                <CardDescription>
-                  View status and history of your previous OD permission requests
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {odRequests.length === 0 ? (
-                    <p className="text-center py-6 text-muted-foreground">No OD requests found</p>
-                  ) : (
-                    odRequests.map((request) => (
-                      <div key={request.id} className="border rounded-md p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium">
-                              {format(request.fromDate, 'MMM dd, yyyy')}
-                              {!request.toDate.toDateString().includes(request.fromDate.toDateString()) && 
-                                ` - ${format(request.toDate, 'MMM dd, yyyy')}`}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Submitted on {format(request.createdAt, 'MMM dd, yyyy')}
-                            </p>
-                          </div>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusBadgeClass(request.status)}`}>
-                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                          </span>
-                        </div>
-                        
-                        <div>
-                          <p className="text-sm font-medium">Reason:</p>
-                          <p className="text-sm">{request.reason}</p>
-                        </div>
-                        
-                        {request.status !== 'pending' && (
-                          <div className="pt-2 border-t">
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Reviewed by {request.reviewedBy} on {request.reviewedAt && format(request.reviewedAt, 'MMM dd, yyyy')}
-                            </p>
-                            {request.comments && (
-                              <p className="text-sm">
-                                <span className="font-medium">Comments:</span> {request.comments}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Your OD Requests</CardTitle>
+              <CardDescription>
+                View status and history of your On-Duty permission requests.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {requests.length > 0 ? (
+                <Table>
+                  <TableCaption>Your recent OD permission requests</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Date(s)</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {requests.map((request) => (
+                      <TableRow key={request.id} className="cursor-pointer hover:bg-muted/50">
+                        <TableCell className="font-medium">{request.subject}</TableCell>
+                        <TableCell>
+                          {formatDateRange(request.startDate, request.endDate)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(request.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-1">No OD Requests</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You haven't submitted any OD permission requests yet.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </RoleLayout>
+    </Layout>
   );
 };
 

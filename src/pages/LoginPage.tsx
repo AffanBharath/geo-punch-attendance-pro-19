@@ -3,17 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
-import { Fingerprint, Users, UserRound, Shield } from "lucide-react";
+import { Users, UserRound, Shield } from "lucide-react";
 
 const LoginPage = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-      <Card className="w-full max-w-md mx-auto">
+    <div className="min-h-screen flex items-center justify-center bg-cover bg-center p-4" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1986&auto=format&fit=crop')" }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      <Card className="w-full max-w-md mx-auto relative z-10 bg-white/95">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Fingerprint className="h-6 w-6 text-primary" />
-            </div>
+            <img 
+              src="https://www.sathyabama.ac.in/sites/default/files/logo.png" 
+              alt="Sathyabama Institute of Science and Technology" 
+              className="h-16"
+            />
           </div>
           <CardTitle className="text-2xl text-center">SIST - MarkMe!</CardTitle>
           <CardDescription className="text-center">

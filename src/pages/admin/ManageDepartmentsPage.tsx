@@ -1,27 +1,33 @@
-import React, { useState } from 'react';
-import RoleLayout from "@/components/RoleLayout";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; 
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 import {
-  Building,
-  Search,
-  Plus,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Users,
-  GraduationCap,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -29,563 +35,484 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Trash2, Edit, Plus, Search, Settings, PlusCircle } from "lucide-react";
+import Layout from "@/components/Layout";
+
+// Sample department data
+const initialDepartments = [
+  {
+    id: "1",
+    name: "Computer Science and Engineering",
+    code: "CSE",
+    hod: "Dr. John Smith",
+    established: "2005",
+    students: 450,
+    description: "Department focused on computer science and software engineering education.",
+  },
+  {
+    id: "2",
+    name: "Electronics and Communication",
+    code: "ECE",
+    hod: "Dr. Sarah Johnson",
+    established: "2000",
+    students: 380,
+    description: "Department specializing in electronics, communication systems, and signal processing.",
+  },
+  {
+    id: "3",
+    name: "Mechanical Engineering",
+    code: "MECH",
+    hod: "Dr. Michael Brown",
+    established: "1995",
+    students: 420,
+    description: "Department covering all aspects of mechanical systems, design and manufacturing.",
+  },
+  {
+    id: "4",
+    name: "Information Technology",
+    code: "IT",
+    hod: "Dr. Emily Davis",
+    established: "2008",
+    students: 350,
+    description: "Department focusing on information systems, networks, and data management.",
+  },
+];
 
 interface Department {
   id: string;
   name: string;
   code: string;
   hod: string;
-  staffCount: number;
-  studentCount: number;
-  establishedYear: number;
-  active: boolean;
+  established: string;
+  students: number;
+  description: string;
 }
 
 const ManageDepartmentsPage = () => {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddingDepartment, setIsAddingDepartment] = useState(false);
+  const [isEditingDepartment, setIsEditingDepartment] = useState(false);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [currentDepartment, setCurrentDepartment] = useState<Department>({
+    id: "",
+    name: "",
+    code: "",
+    hod: "",
+    established: "",
+    students: 0,
+    description: "",
+  });
+  
   const { toast } = useToast();
-  const [departments, setDepartments] = useState<Department[]>([
-    {
-      id: "1",
-      name: "Computer Science & Engineering",
-      code: "CSE",
-      hod: "Dr. Robert Smith",
-      staffCount: 15,
-      studentCount: 120,
-      establishedYear: 2000,
-      active: true,
-    },
-    {
-      id: "2",
-      name: "Electronics & Communication Engineering",
-      code: "ECE",
-      hod: "Dr. Jennifer Williams",
-      staffCount: 12,
-      studentCount: 90,
-      establishedYear: 2002,
-      active: true,
-    },
-    {
-      id: "3",
-      name: "Mechanical Engineering",
-      code: "MECH",
-      hod: "Dr. Michael Brown",
-      staffCount: 18,
-      studentCount: 110,
-      establishedYear: 1995,
-      active: true,
-    },
-    {
-      id: "4",
-      name: "Civil Engineering",
-      code: "CIVIL",
-      hod: "Dr. Emily Johnson",
-      staffCount: 14,
-      studentCount: 85,
-      establishedYear: 1998,
-      active: true,
-    },
-    {
-      id: "5",
-      name: "Electrical Engineering",
-      code: "EEE",
-      hod: "Dr. Thomas Wilson",
-      staffCount: 16,
-      studentCount: 95,
-      establishedYear: 1997,
-      active: false,
-    },
-  ]);
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [addDepartmentOpen, setAddDepartmentOpen] = useState(false);
-  const [editDepartmentOpen, setEditDepartmentOpen] = useState(false);
-  const [deleteDepartmentOpen, setDeleteDepartmentOpen] = useState(false);
-  const [systemMaintenanceOpen, setSystemMaintenanceOpen] = useState(false);
-  
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState(
-    "The system is currently under maintenance. Please try again later."
+
+  useEffect(() => {
+    // In a real app, this would be an API call
+    // For demo, we use the sample data
+    const storedDepartments = localStorage.getItem("departments");
+    if (storedDepartments) {
+      setDepartments(JSON.parse(storedDepartments));
+    } else {
+      setDepartments(initialDepartments);
+      localStorage.setItem("departments", JSON.stringify(initialDepartments));
+    }
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const filteredDepartments = departments.filter(
+    (department) =>
+      department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      department.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      department.hod.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  const [departmentForm, setDepartmentForm] = useState({
-    name: '',
-    code: '',
-    hod: '',
-    establishedYear: new Date().getFullYear(),
-  });
-  
-  const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
-  
-  const filteredDepartments = departments.filter((dept) => {
-    return (
-      dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dept.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dept.hod.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-  
+
   const handleAddDepartment = () => {
-    if (!departmentForm.name || !departmentForm.code || !departmentForm.hod) {
+    if (validateDepartmentData()) {
+      const newDepartment = {
+        ...currentDepartment,
+        id: (Math.max(0, ...departments.map((d) => parseInt(d.id))) + 1).toString(),
+      };
+      const updatedDepartments = [...departments, newDepartment];
+      setDepartments(updatedDepartments);
+      localStorage.setItem("departments", JSON.stringify(updatedDepartments));
+      setIsAddingDepartment(false);
+      resetForm();
       toast({
-        title: "Missing Information",
-        description: "Please fill all required fields",
-        variant: "destructive",
+        title: "Department Added",
+        description: "The department has been added successfully.",
       });
-      return;
     }
-    
-    const newDepartment: Department = {
-      id: `${departments.length + 1}`,
-      name: departmentForm.name,
-      code: departmentForm.code.toUpperCase(),
-      hod: departmentForm.hod,
-      staffCount: 0,
-      studentCount: 0,
-      establishedYear: departmentForm.establishedYear,
-      active: true,
-    };
-    
-    setDepartments([...departments, newDepartment]);
-    setAddDepartmentOpen(false);
-    
-    toast({
-      title: "Department Added",
-      description: `${newDepartment.name} department has been added successfully`,
-    });
-    
-    setDepartmentForm({
-      name: '',
-      code: '',
-      hod: '',
-      establishedYear: new Date().getFullYear(),
-    });
   };
-  
-  const handleEditDepartment = (department: Department) => {
-    setCurrentDepartment(department);
-    setDepartmentForm({
-      name: department.name,
-      code: department.code,
-      hod: department.hod,
-      establishedYear: department.establishedYear,
-    });
-    setEditDepartmentOpen(true);
-  };
-  
-  const handleUpdateDepartment = () => {
-    if (!currentDepartment) return;
-    
-    if (!departmentForm.name || !departmentForm.code || !departmentForm.hod) {
+
+  const handleEditDepartment = () => {
+    if (validateDepartmentData()) {
+      const updatedDepartments = departments.map((dept) =>
+        dept.id === currentDepartment.id ? currentDepartment : dept
+      );
+      setDepartments(updatedDepartments);
+      localStorage.setItem("departments", JSON.stringify(updatedDepartments));
+      setIsEditingDepartment(false);
+      resetForm();
       toast({
-        title: "Missing Information",
-        description: "Please fill all required fields",
-        variant: "destructive",
+        title: "Department Updated",
+        description: "The department has been updated successfully.",
       });
-      return;
     }
-    
-    const updatedDepartments = departments.map(dept => {
-      if (dept.id === currentDepartment.id) {
-        return {
-          ...dept,
-          name: departmentForm.name,
-          code: departmentForm.code.toUpperCase(),
-          hod: departmentForm.hod,
-          establishedYear: departmentForm.establishedYear,
-        };
-      }
-      return dept;
-    });
-    
-    setDepartments(updatedDepartments);
-    setEditDepartmentOpen(false);
-    
-    toast({
-      title: "Department Updated",
-      description: `${departmentForm.name} department has been updated successfully`,
-    });
-    
-    setCurrentDepartment(null);
-    setDepartmentForm({
-      name: '',
-      code: '',
-      hod: '',
-      establishedYear: new Date().getFullYear(),
-    });
   };
-  
-  const handleDeleteDepartmentConfirm = (department: Department) => {
-    setCurrentDepartment(department);
-    setDeleteDepartmentOpen(true);
-  };
-  
-  const handleDeleteDepartment = () => {
-    if (!currentDepartment) return;
-    
-    const updatedDepartments = departments.filter(dept => dept.id !== currentDepartment.id);
+
+  const handleDeleteDepartment = (id: string) => {
+    const updatedDepartments = departments.filter((dept) => dept.id !== id);
     setDepartments(updatedDepartments);
-    setDeleteDepartmentOpen(false);
-    
+    localStorage.setItem("departments", JSON.stringify(updatedDepartments));
     toast({
       title: "Department Deleted",
-      description: `${currentDepartment.name} department has been deleted successfully`,
-    });
-    
-    setCurrentDepartment(null);
-  };
-  
-  const handleToggleDepartmentStatus = (department: Department) => {
-    const updatedDepartments = departments.map(dept => {
-      if (dept.id === department.id) {
-        return {
-          ...dept,
-          active: !dept.active,
-        };
-      }
-      return dept;
-    });
-    
-    setDepartments(updatedDepartments);
-    
-    toast({
-      title: `Department ${department.active ? 'Deactivated' : 'Activated'}`,
-      description: `${department.name} department has been ${department.active ? 'deactivated' : 'activated'}`,
+      description: "The department has been deleted successfully.",
     });
   };
-  
-  const handleMaintenanceModeToggle = () => {
-    const newMode = !maintenanceMode;
-    setMaintenanceMode(newMode);
-    
-    if (newMode) {
+
+  const validateDepartmentData = () => {
+    if (!currentDepartment.name || !currentDepartment.code || !currentDepartment.hod) {
       toast({
-        title: "Maintenance Mode Enabled",
-        description: "The system is now in maintenance mode. Users will see maintenance message.",
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fill all required fields.",
       });
-    } else {
-      toast({
-        title: "Maintenance Mode Disabled",
-        description: "The system is now operating normally.",
-      });
+      return false;
     }
-    
-    setSystemMaintenanceOpen(false);
+    return true;
+  };
+
+  const resetForm = () => {
+    setCurrentDepartment({
+      id: "",
+      name: "",
+      code: "",
+      hod: "",
+      established: "",
+      students: 0,
+      description: "",
+    });
+  };
+
+  const openEditDialog = (department: Department) => {
+    setCurrentDepartment(department);
+    setIsEditingDepartment(true);
+  };
+
+  const toggleMaintenanceMode = () => {
+    setIsMaintenanceMode(!isMaintenanceMode);
+    toast({
+      title: isMaintenanceMode ? "Maintenance Mode Disabled" : "Maintenance Mode Enabled",
+      description: isMaintenanceMode 
+        ? "The system is now accessible to all users." 
+        : "The system is now in maintenance mode. Only administrators can access it.",
+    });
   };
 
   return (
-    <RoleLayout>
+    <Layout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight text-admin-primary">Manage Departments</h1>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setSystemMaintenanceOpen(true)}
-              className={`${
-                maintenanceMode ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
-              }`}
+          <h1 className="text-3xl font-bold tracking-tight">Manage Departments</h1>
+          <div className="flex gap-2">
+            <Button 
+              onClick={toggleMaintenanceMode}
+              variant={isMaintenanceMode ? "destructive" : "outline"}
+              className="flex items-center gap-2"
             >
-              {maintenanceMode ? 'System in Maintenance' : 'Maintenance Mode'}
+              <Settings className="h-4 w-4" />
+              {isMaintenanceMode ? "Disable Maintenance Mode" : "Enable Maintenance Mode"}
             </Button>
-            <Button
-              className="bg-admin-primary hover:bg-admin-primary/90"
-              onClick={() => setAddDepartmentOpen(true)}
-            >
-              <Plus className="mr-1 h-4 w-4" /> Add Department
-            </Button>
+            <Dialog open={isAddingDepartment} onOpenChange={setIsAddingDepartment}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Department
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Department</DialogTitle>
+                  <DialogDescription>
+                    Create a new department in the system.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Department Name</Label>
+                      <Input
+                        id="name"
+                        value={currentDepartment.name}
+                        onChange={(e) =>
+                          setCurrentDepartment({
+                            ...currentDepartment,
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Department Name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Department Code</Label>
+                      <Input
+                        id="code"
+                        value={currentDepartment.code}
+                        onChange={(e) =>
+                          setCurrentDepartment({
+                            ...currentDepartment,
+                            code: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., CSE"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hod">Head of Department</Label>
+                      <Input
+                        id="hod"
+                        value={currentDepartment.hod}
+                        onChange={(e) =>
+                          setCurrentDepartment({
+                            ...currentDepartment,
+                            hod: e.target.value,
+                          })
+                        }
+                        placeholder="HOD Name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="established">Year Established</Label>
+                      <Input
+                        id="established"
+                        value={currentDepartment.established}
+                        onChange={(e) =>
+                          setCurrentDepartment({
+                            ...currentDepartment,
+                            established: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., 2005"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="students">Number of Students</Label>
+                      <Input
+                        id="students"
+                        type="number"
+                        value={currentDepartment.students}
+                        onChange={(e) =>
+                          setCurrentDepartment({
+                            ...currentDepartment,
+                            students: parseInt(e.target.value),
+                          })
+                        }
+                        placeholder="e.g., 300"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={currentDepartment.description}
+                      onChange={(e) =>
+                        setCurrentDepartment({
+                          ...currentDepartment,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Department description"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddingDepartment(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddDepartment}>Save Department</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
-        
-        <Card className="border-admin-primary/20">
-          <CardHeader className="pb-3">
-            <CardTitle>Departments</CardTitle>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Departments</CardTitle>
             <CardDescription>
-              Manage academic departments within the institution
+              View and manage all departments in Sathyabama Institute.
             </CardDescription>
-            <div className="flex mt-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  type="search"
                   placeholder="Search departments..."
-                  className="pl-9"
+                  className="pl-8"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearchChange}
                 />
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredDepartments.length === 0 ? (
-                <p className="text-center py-6 text-muted-foreground">No departments found</p>
-              ) : (
-                <div className="rounded-md border">
-                  <div className="grid grid-cols-12 p-4 bg-muted/50 text-sm font-medium">
-                    <div className="col-span-4">Department</div>
-                    <div className="col-span-2 text-center">Code</div>
-                    <div className="col-span-2 text-center">HOD</div>
-                    <div className="col-span-1 text-center">Staff</div>
-                    <div className="col-span-1 text-center">Students</div>
-                    <div className="col-span-1 text-center">Status</div>
-                    <div className="col-span-1 text-center">Actions</div>
-                  </div>
-                  
-                  {filteredDepartments.map((department) => (
-                    <div
-                      key={department.id}
-                      className="grid grid-cols-12 p-4 border-t items-center text-sm"
-                    >
-                      <div className="col-span-4 font-medium">{department.name}</div>
-                      <div className="col-span-2 text-center">{department.code}</div>
-                      <div className="col-span-2 text-center">{department.hod}</div>
-                      <div className="col-span-1 text-center">{department.staffCount}</div>
-                      <div className="col-span-1 text-center">{department.studentCount}</div>
-                      <div className="col-span-1 text-center">
-                        <Badge className={department.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-                          {department.active ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                      <div className="col-span-1 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditDepartment(department)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleDepartmentStatus(department)}>
-                              {department.active ? (
-                                <>
-                                  <Trash2 className="mr-2 h-4 w-4" /> Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <Building className="mr-2 h-4 w-4" /> Activate
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteDepartmentConfirm(department)}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Table>
+              <TableCaption>A list of all departments.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>HOD</TableHead>
+                  <TableHead className="text-right">Students</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDepartments.length > 0 ? (
+                  filteredDepartments.map((department) => (
+                    <TableRow key={department.id}>
+                      <TableCell className="font-medium">{department.name}</TableCell>
+                      <TableCell>{department.code}</TableCell>
+                      <TableCell>{department.hod}</TableCell>
+                      <TableCell className="text-right">{department.students}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(department)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteDepartment(department.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">
+                      No departments found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
-          <CardFooter className="flex justify-between pt-4">
-            <div className="text-sm text-muted-foreground">
-              Total: {filteredDepartments.length} departments
-            </div>
-          </CardFooter>
         </Card>
       </div>
-      
-      <Dialog open={addDepartmentOpen} onOpenChange={setAddDepartmentOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add New Department</DialogTitle>
-            <DialogDescription>
-              Create a new department in the system
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="dept-name">Department Name</Label>
-              <Input
-                id="dept-name"
-                placeholder="e.g., Computer Science & Engineering"
-                value={departmentForm.name}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dept-code">Department Code</Label>
-              <Input
-                id="dept-code"
-                placeholder="e.g., CSE"
-                value={departmentForm.code}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, code: e.target.value })}
-                maxLength={5}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dept-hod">Head of Department</Label>
-              <Input
-                id="dept-hod"
-                placeholder="e.g., Dr. Robert Smith"
-                value={departmentForm.hod}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, hod: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dept-year">Established Year</Label>
-              <Input
-                id="dept-year"
-                type="number"
-                value={departmentForm.establishedYear}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, establishedYear: parseInt(e.target.value) || new Date().getFullYear() })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDepartmentOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddDepartment}>
-              Add Department
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={editDepartmentOpen} onOpenChange={setEditDepartmentOpen}>
-        <DialogContent className="sm:max-w-md">
+
+      {/* Edit Department Dialog */}
+      <Dialog open={isEditingDepartment} onOpenChange={setIsEditingDepartment}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Edit Department</DialogTitle>
-            <DialogDescription>
-              Update department information
-            </DialogDescription>
+            <DialogDescription>Update department information.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-dept-name">Department Name</Label>
-              <Input
-                id="edit-dept-name"
-                value={departmentForm.name}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
-              />
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Department Name</Label>
+                <Input
+                  id="edit-name"
+                  value={currentDepartment.name}
+                  onChange={(e) =>
+                    setCurrentDepartment({ ...currentDepartment, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-code">Department Code</Label>
+                <Input
+                  id="edit-code"
+                  value={currentDepartment.code}
+                  onChange={(e) =>
+                    setCurrentDepartment({ ...currentDepartment, code: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-hod">Head of Department</Label>
+                <Input
+                  id="edit-hod"
+                  value={currentDepartment.hod}
+                  onChange={(e) =>
+                    setCurrentDepartment({ ...currentDepartment, hod: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-established">Year Established</Label>
+                <Input
+                  id="edit-established"
+                  value={currentDepartment.established}
+                  onChange={(e) =>
+                    setCurrentDepartment({
+                      ...currentDepartment,
+                      established: e.target.value,
+                    })
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-dept-code">Department Code</Label>
+              <Label htmlFor="edit-students">Number of Students</Label>
               <Input
-                id="edit-dept-code"
-                value={departmentForm.code}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, code: e.target.value })}
-                maxLength={5}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-dept-hod">Head of Department</Label>
-              <Input
-                id="edit-dept-hod"
-                value={departmentForm.hod}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, hod: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-dept-year">Established Year</Label>
-              <Input
-                id="edit-dept-year"
+                id="edit-students"
                 type="number"
-                value={departmentForm.establishedYear}
-                onChange={(e) => setDepartmentForm({ ...departmentForm, establishedYear: parseInt(e.target.value) || new Date().getFullYear() })}
+                value={currentDepartment.students}
+                onChange={(e) =>
+                  setCurrentDepartment({
+                    ...currentDepartment,
+                    students: parseInt(e.target.value),
+                  })
+                }
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDepartmentOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateDepartment}>
-              Update Department
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={deleteDepartmentOpen} onOpenChange={setDeleteDepartmentOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Department</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this department? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {currentDepartment && (
-              <p>
-                You are about to delete <strong>{currentDepartment.name}</strong> ({currentDepartment.code}).
-                This will remove all associated data.
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDepartmentOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteDepartment}>
-              Delete Department
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={systemMaintenanceOpen} onOpenChange={setSystemMaintenanceOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>System Maintenance Mode</DialogTitle>
-            <DialogDescription>
-              Enable maintenance mode to temporarily restrict system access
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="maintenance-mode"
-                checked={maintenanceMode}
-                onCheckedChange={setMaintenanceMode}
-              />
-              <Label htmlFor="maintenance-mode">
-                {maintenanceMode ? "Disable Maintenance Mode" : "Enable Maintenance Mode"}
-              </Label>
-            </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="maintenance-message">Maintenance Message</Label>
+              <Label htmlFor="edit-description">Description</Label>
               <Textarea
-                id="maintenance-message"
-                value={maintenanceMessage}
-                onChange={(e) => setMaintenanceMessage(e.target.value)}
-                placeholder="Message to display to users during maintenance"
-                className="min-h-[100px]"
+                id="edit-description"
+                value={currentDepartment.description}
+                onChange={(e) =>
+                  setCurrentDepartment({
+                    ...currentDepartment,
+                    description: e.target.value,
+                  })
+                }
+                rows={4}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSystemMaintenanceOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditingDepartment(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleMaintenanceModeToggle}
-              className={maintenanceMode ? "bg-green-600 hover:bg-green-700" : "bg-yellow-600 hover:bg-yellow-700"}
-            >
-              {maintenanceMode ? "Disable Maintenance Mode" : "Enable Maintenance Mode"}
-            </Button>
+            <Button onClick={handleEditDepartment}>Update Department</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </RoleLayout>
+    </Layout>
   );
 };
 
