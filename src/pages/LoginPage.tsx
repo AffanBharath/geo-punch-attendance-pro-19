@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,9 +12,9 @@ const LoginPage = () => {
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <img 
-              src="https://www.sathyabama.ac.in/sites/default/files/logo.png" 
+              src="/lovable-uploads/44a5b4d3-d9ef-4098-b060-715cfbfdea5a.png" 
               alt="Sathyabama Institute of Science and Technology" 
-              className="h-16"
+              className="h-28 w-auto"
             />
           </div>
           <CardTitle className="text-2xl text-center">SIST - MarkMe!</CardTitle>
@@ -24,6 +23,7 @@ const LoginPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
+          
           <div className="grid grid-cols-1 gap-4">
             <Link to="/login/student">
               <Button 
