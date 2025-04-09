@@ -19,8 +19,8 @@ const AttendanceForm = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Department location (example - this would come from a database in a real application)
-  const departmentLocation = { lat: 12.8701, lng: 80.2231 }; // Example coordinates for Sathyabama University
+  // Department location (updated with provided coordinates)
+  const departmentLocation = { lat: 13.0351104, lng: 80.2127872 }; // Updated coordinates
   const geoFencingRadius = 100; // in meters
   
   // Pre-registered keys (in a real app, these would be securely stored and validated against a database)
@@ -168,58 +168,99 @@ const AttendanceForm = () => {
   const handleKeySubmit = (type: 'in' | 'out') => {
     setLoading(true);
     
-    // In a real application, this would validate against a secure database
-    // Here we're just doing a simple validation based on user role
-    const validKey = user?.role === 'admin' 
-      ? validKeys.admin 
-      : user?.role === 'staff' 
-      ? validKeys.staff 
-      : validKeys.student;
-    
-    const isValid = registeredKey === validKey;
-    setKeyValid(isValid);
-    
-    if (isValid && isWithinRadius) {
-      const now = new Date();
-      const attendanceRecord = {
-        userId: user?.id || "1",
-        name: user?.name || "User",
-        date: now.toLocaleDateString(),
-        time: now.toLocaleTimeString(),
-        type: type === 'in' ? "Check In" : "Check Out",
-        location: location,
-        timestamp: now.getTime(),
-        method: "Pre-registered Key"
-      };
-      
-      // Store in local storage
-      const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-      existingRecords.push(attendanceRecord);
-      localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
-      
-      toast({
-        title: type === 'in' ? "Check-in Successful" : "Check-out Successful",
-        description: `You have ${type === 'in' ? 'checked in' : 'checked out'} at ${now.toLocaleTimeString()} using your pre-registered key`,
-      });
-      
-      // Reset form
-      setRegisteredKey("");
-      setKeyValid(null);
-    } else if (!isWithinRadius) {
-      toast({
-        variant: "destructive",
-        title: "Location Error",
-        description: "You must be at the department location to mark attendance",
-      });
+    // Get current location for pre-registered key validation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          
+          // Update location state
+          setLocation(currentLocation);
+          
+          // Check if within geofencing radius
+          const distance = calculateDistance(
+            currentLocation.lat,
+            currentLocation.lng,
+            departmentLocation.lat,
+            departmentLocation.lng
+          );
+          
+          const withinRadius = distance <= geoFencingRadius;
+          setIsWithinRadius(withinRadius);
+          
+          // In a real application, this would validate against a secure database
+          // Here we're just doing a simple validation based on user role
+          const validKey = user?.role === 'admin' 
+            ? validKeys.admin 
+            : user?.role === 'staff' 
+            ? validKeys.staff 
+            : validKeys.student;
+          
+          const isValid = registeredKey === validKey;
+          setKeyValid(isValid);
+          
+          if (isValid && withinRadius) {
+            const now = new Date();
+            const attendanceRecord = {
+              userId: user?.id || "1",
+              name: user?.name || "User",
+              date: now.toLocaleDateString(),
+              time: now.toLocaleTimeString(),
+              type: type === 'in' ? "Check In" : "Check Out",
+              location: currentLocation,
+              timestamp: now.getTime(),
+              method: "Pre-registered Key"
+            };
+            
+            // Store in local storage
+            const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            existingRecords.push(attendanceRecord);
+            localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
+            
+            toast({
+              title: type === 'in' ? "Check-in Successful" : "Check-out Successful",
+              description: `You have ${type === 'in' ? 'checked in' : 'checked out'} at ${now.toLocaleTimeString()} using your pre-registered key`,
+            });
+            
+            // Reset form
+            setRegisteredKey("");
+            setKeyValid(null);
+          } else if (!withinRadius) {
+            toast({
+              variant: "destructive",
+              title: "Location Error",
+              description: "You must be at the department location to mark attendance",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Invalid Key",
+              description: "The key you entered is incorrect. Please try again.",
+            });
+          }
+          
+          setLoading(false);
+        },
+        (error) => {
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: `Unable to get your location: ${error.message}`,
+          });
+          setLoading(false);
+        }
+      );
     } else {
       toast({
         variant: "destructive",
-        title: "Invalid Key",
-        description: "The key you entered is incorrect. Please try again.",
+        title: "Geolocation Not Supported",
+        description: "Your browser does not support geolocation",
       });
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const getCurrentUserKey = () => {
@@ -351,14 +392,14 @@ const AttendanceForm = () => {
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <Button
-                    disabled={loading || !registeredKey || !isWithinRadius}
+                    disabled={loading || !registeredKey}
                     onClick={() => handleKeySubmit('in')}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Check In
                   </Button>
                   <Button
-                    disabled={loading || !registeredKey || !isWithinRadius}
+                    disabled={loading || !registeredKey}
                     onClick={() => handleKeySubmit('out')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
