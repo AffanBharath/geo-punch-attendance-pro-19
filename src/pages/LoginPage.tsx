@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,15 +7,15 @@ import { Users, UserRound, Shield } from "lucide-react";
 
 const LoginPage = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cover bg-center p-4" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1986&auto=format&fit=crop')" }}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+    <div className="min-h-screen flex items-center justify-center bg-cover bg-center p-4" style={{ backgroundImage: "url('/lovable-uploads/1633152b-2427-4c38-88ad-9b72178262b7.png')" }}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
       <Card className="w-full max-w-md mx-auto relative z-10 bg-white/95">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <img 
-              src="/lovable-uploads/44a5b4d3-d9ef-4098-b060-715cfbfdea5a.png" 
+              src="/lovable-uploads/9034d4ac-8025-4f65-8ac5-fd1146ed13b8.png" 
               alt="Sathyabama Institute of Science and Technology" 
-              className="h-28 w-auto"
+              className="h-32 w-auto"
             />
           </div>
           <CardTitle className="text-2xl text-center">SIST - MarkMe!</CardTitle>
