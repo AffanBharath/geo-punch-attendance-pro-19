@@ -1,3 +1,4 @@
+
 import { ToastProvider, ToastViewport } from "@/components/ui/toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -28,9 +29,14 @@ import NotFound from "./pages/NotFound";
 // Admin Pages
 import ManageStaffPage from "./pages/admin/ManageStaffPage";
 import ManageStudentsPage from "./pages/admin/ManageStudentsPage";
+import ManageDepartmentsPage from "./pages/admin/ManageDepartmentsPage";
 
 // Staff Pages
 import StudentDetailsPage from "./pages/staff/StudentDetailsPage";
+import ODRequestsPage from "./pages/staff/ODRequestsPage";
+
+// Student Pages
+import ODPermissionPage from "./pages/student/ODPermissionPage";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +116,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/student/od-permission" 
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <ODPermissionPage />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Staff Routes */}
             <Route 
@@ -136,6 +150,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/staff/od-requests" 
+              element={
+                <ProtectedRoute allowedRoles={['staff']}>
+                  <ODRequestsPage />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Admin Routes */}
             <Route 
@@ -159,6 +181,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <ManageStudentsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/manage-departments" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <ManageDepartmentsPage />
                 </ProtectedRoute>
               } 
             />

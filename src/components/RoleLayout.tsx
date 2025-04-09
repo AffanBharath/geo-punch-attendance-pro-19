@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import RoleSidebar from './RoleSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
+import { Menu, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface RoleLayoutProps {
   children: React.ReactNode;
@@ -13,8 +15,9 @@ interface RoleLayoutProps {
 
 const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
-  const { role } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const { role, user } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   React.useEffect(() => {
     setSidebarOpen(!isMobile);
@@ -50,6 +53,7 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
 
   const headerText = getHeaderText();
   const roleColor = getRoleColor(role);
+  const initials = user?.name ? user.name.charAt(0) : 'U';
 
   return (
     <div className="flex min-h-screen">
@@ -82,13 +86,79 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className={`font-bold text-lg text-${roleColor}`}>{headerText}</h1>
-            <div className="w-9"></div> {/* Spacer for alignment */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setProfileOpen(true)}
+              className={`text-${roleColor}`}
+            >
+              <Avatar className="h-8 w-8">
+                {user?.profilePic ? (
+                  <AvatarImage src={user.profilePic} />
+                ) : (
+                  <AvatarFallback className={`bg-${roleColor} text-white`}>
+                    {initials}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </Button>
           </div>
         )}
 
         <div className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </div>
+        
+        {/* User Profile Dialog */}
+        <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>User Profile</DialogTitle>
+              <DialogDescription>
+                Your profile details
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex justify-center">
+                <Avatar className="h-24 w-24">
+                  {user?.profilePic ? (
+                    <AvatarImage src={user.profilePic} alt={user?.name || "User"} />
+                  ) : (
+                    <AvatarFallback className={`text-2xl bg-${roleColor} text-white`}>
+                      {initials}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                  <p className="font-medium">{user?.name || "Not provided"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p className="font-medium">{user?.email || "Not provided"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">ID</p>
+                  <p className="font-medium">{user?.studentId || user?.staffId || user?.id || "Not provided"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Role</p>
+                  <p className="font-medium">{user?.role || "Not provided"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Department</p>
+                  <p className="font-medium">{user?.department || "Not provided"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Join Date</p>
+                  <p className="font-medium">{user?.joinDate || "Not provided"}</p>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

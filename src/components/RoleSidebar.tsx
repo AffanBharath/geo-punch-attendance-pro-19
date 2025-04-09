@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { 
   UserRound, LogOut, ArrowLeft, ArrowRight, 
   Fingerprint, FileSpreadsheet, Users, BookOpen,
-  Settings, Shield, GraduationCap, Calendar, ClipboardList
+  Settings, Shield, GraduationCap, Calendar, ClipboardList, Building
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -55,6 +55,11 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
             path: "/admin/manage-students",
           },
           {
+            title: "Manage Departments",
+            icon: <Building className="h-5 w-5" />,
+            path: "/admin/manage-departments",
+          },
+          {
             title: "Reports",
             icon: <FileSpreadsheet className="h-5 w-5" />,
             path: "/admin/reports",
@@ -76,6 +81,11 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
             title: "My Attendance",
             icon: <Fingerprint className="h-5 w-5" />,
             path: "/staff/attendance",
+          },
+          {
+            title: "OD Requests",
+            icon: <ClipboardList className="h-5 w-5" />,
+            path: "/staff/od-requests",
           },
           {
             title: "Salary",
@@ -100,6 +110,11 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
             icon: <BookOpen className="h-5 w-5" />,
             path: "/student/courses",
           },
+          {
+            title: "OD Permission",
+            icon: <ClipboardList className="h-5 w-5" />,
+            path: "/student/od-permission",
+          }
         ];
       default:
         return [];
