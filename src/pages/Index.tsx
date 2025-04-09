@@ -1,16 +1,18 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import LoginPage from "./LoginPage";
 
 const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to login page
-    navigate("/");
+    // Don't redirect automatically - render the login page directly
+    // This ensures that when visiting the root URL, content is displayed
   }, [navigate]);
 
-  return null;
+  // Return the LoginPage component directly
+  return <LoginPage />;
 };
 
 export default Index;

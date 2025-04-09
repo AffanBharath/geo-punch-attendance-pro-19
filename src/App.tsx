@@ -1,4 +1,3 @@
-
 import { ToastProvider, ToastViewport } from "@/components/ui/toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,6 +24,7 @@ import AttendancePage from "./pages/AttendancePage";
 import SalaryPage from "./pages/SalaryPage";
 import ReportPage from "./pages/ReportPage";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 // Admin Pages
 import ManageStaffPage from "./pages/admin/ManageStaffPage";
