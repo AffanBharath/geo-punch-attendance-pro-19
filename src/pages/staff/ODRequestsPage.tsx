@@ -1,14 +1,27 @@
 
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
 } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -17,30 +30,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { Calendar, Clock, FileText, Info } from "lucide-react";
+import RoleLayout from "@/components/RoleLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Eye, Check, X } from "lucide-react";
 
-// OD Request interface
+// Define the proper ODRequest type with a union type for status
 interface ODRequest {
   id: string;
   studentId: string;
@@ -50,8 +48,8 @@ interface ODRequest {
   startDate: Date;
   endDate: Date;
   supportingDetails?: string;
-  status: "pending" | "approved" | "rejected";
   submittedOn: Date;
+  status: "pending" | "approved" | "rejected";
   reviewedOn?: Date;
   reviewedBy?: string;
   comments?: string;
@@ -61,314 +59,573 @@ const ODRequestsPage = () => {
   const [requests, setRequests] = useState<ODRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<ODRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<ODRequest | null>(null);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("pending");
-  const [comments, setComments] = useState("");
-  
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewComments, setReviewComments] = useState("");
+  const [reviewAction, setReviewAction] = useState<"approved" | "rejected" | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Format date for consistent comparison
-  const formatDateForCompare = (date: Date | string) => {
-    return format(new Date(date), "yyyy-MM-dd");
-  };
-
   useEffect(() => {
-    // Load OD requests from localStorage
-    const storedRequests = localStorage.getItem("odRequests");
-    if (storedRequests) {
-      // Parse and convert date strings back to Date objects
-      const parsedRequests = JSON.parse(storedRequests, (key, value) => {
-        if (key === "startDate" || key === "endDate" || key === "submittedOn" || key === "reviewedOn") {
-          return value ? new Date(value) : null;
-        }
-        return value;
-      });
-      
-      setRequests(parsedRequests);
-    }
+    // In a real app, this would fetch from an API
+    // For demo, we'll create mock data
+    const mockODRequests: ODRequest[] = [
+      {
+        id: "OD001",
+        studentId: "CS2023001",
+        studentName: "Arun Kumar",
+        subject: "Database Management",
+        reason: "Attending tech conference",
+        startDate: new Date(2023, 3, 15),
+        endDate: new Date(2023, 3, 17),
+        supportingDetails: "Conference registration attached",
+        submittedOn: new Date(2023, 3, 10),
+        status: "pending"
+      },
+      {
+        id: "OD002",
+        studentId: "CS2023002",
+        studentName: "Priya Sharma",
+        subject: "Software Engineering",
+        reason: "Medical appointment",
+        startDate: new Date(2023, 3, 12),
+        endDate: new Date(2023, 3, 12),
+        submittedOn: new Date(2023, 3, 5),
+        status: "approved",
+        reviewedOn: new Date(2023, 3, 6),
+        reviewedBy: "Dr. Suresh",
+        comments: "Approved based on medical certificate"
+      },
+      {
+        id: "OD003",
+        studentId: "CS2023003",
+        studentName: "Ravi Patel",
+        subject: "Machine Learning",
+        reason: "Participating in hackathon",
+        startDate: new Date(2023, 3, 20),
+        endDate: new Date(2023, 3, 22),
+        supportingDetails: "Event details attached",
+        submittedOn: new Date(2023, 3, 15),
+        status: "rejected",
+        reviewedOn: new Date(2023, 3, 16),
+        reviewedBy: "Dr. Suresh",
+        comments: "Hackathon does not align with current coursework"
+      },
+      {
+        id: "OD004",
+        studentId: "CS2023004",
+        studentName: "Anita Desai",
+        subject: "Web Development",
+        reason: "Family emergency",
+        startDate: new Date(2023, 4, 5),
+        endDate: new Date(2023, 4, 7),
+        submittedOn: new Date(2023, 4, 2),
+        status: "pending"
+      }
+    ];
+
+    setRequests(mockODRequests);
+    setFilteredRequests(mockODRequests);
   }, []);
 
-  // Filter requests based on search term and active tab
-  useEffect(() => {
-    let filtered = [...requests];
-    
-    // Filter by tab status
-    filtered = filtered.filter(req => {
-      if (activeTab === "all") return true;
-      return req.status === activeTab;
-    });
-    
-    // Filter by search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(req => 
-        req.studentName.toLowerCase().includes(term) ||
-        req.subject.toLowerCase().includes(term)
-      );
-    }
-    
-    setFilteredRequests(filtered);
-  }, [requests, searchTerm, activeTab]);
-
-  // Format date range for display
-  const formatDateRange = (start: Date, end: Date) => {
-    if (formatDateForCompare(start) === formatDateForCompare(end)) {
-      return format(new Date(start), "PP");
-    }
-    return `${format(new Date(start), "PP")} to ${format(new Date(end), "PP")}`;
-  };
-
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <Badge className="bg-green-500">Approved</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-500">Rejected</Badge>;
-      default:
-        return <Badge className="bg-yellow-500">Pending</Badge>;
-    }
-  };
-
-  // Handle request view
-  const handleViewRequest = (request: ODRequest) => {
+  const handleOpenReviewDialog = (request: ODRequest) => {
     setSelectedRequest(request);
-    setComments(request.comments || "");
-    setIsViewOpen(true);
+    setReviewComments("");
+    setReviewAction(null);
+    setReviewDialogOpen(true);
   };
 
-  // Handle request approval
-  const handleApprove = () => {
-    if (!selectedRequest || !user) return;
-    
-    const updatedRequests = requests.map(req => {
-      if (req.id === selectedRequest.id) {
-        return {
-          ...req,
-          status: "approved",
-          reviewedOn: new Date(),
-          reviewedBy: user.name,
-          comments: comments
-        };
-      }
-      return req;
-    });
-    
-    updateRequests(updatedRequests);
-    setIsViewOpen(false);
-    toast({
-      title: "Request Approved",
-      description: "OD request has been approved successfully.",
-    });
-  };
+  const handleSubmitReview = () => {
+    if (!selectedRequest || !reviewAction) return;
 
-  // Handle request rejection
-  const handleReject = () => {
-    if (!selectedRequest || !user) return;
-    
-    const updatedRequests = requests.map(req => {
-      if (req.id === selectedRequest.id) {
-        return {
-          ...req,
-          status: "rejected",
-          reviewedOn: new Date(),
-          reviewedBy: user.name,
-          comments: comments
-        };
-      }
-      return req;
-    });
-    
-    updateRequests(updatedRequests);
-    setIsViewOpen(false);
-    toast({
-      title: "Request Rejected",
-      description: "OD request has been rejected.",
-    });
-  };
+    // Update the request status
+    const updatedRequest: ODRequest = {
+      ...selectedRequest,
+      status: reviewAction,
+      reviewedOn: new Date(),
+      reviewedBy: user?.name || "Staff Member",
+      comments: reviewComments
+    };
 
-  // Update requests in localStorage
-  const updateRequests = (updatedRequests: ODRequest[]) => {
-    localStorage.setItem("odRequests", JSON.stringify(updatedRequests));
+    // Update the requests array
+    const updatedRequests = requests.map(req => 
+      req.id === updatedRequest.id ? updatedRequest : req
+    ) as ODRequest[];
+
     setRequests(updatedRequests);
+    setFilteredRequests(updatedRequests);
+    setReviewDialogOpen(false);
+
+    toast({
+      title: `OD Request ${reviewAction === "approved" ? "Approved" : "Rejected"}`,
+      description: `You have ${reviewAction} the OD request from ${selectedRequest.studentName}`,
+    });
+  };
+
+  const handleFilterChange = (filter: "all" | "pending" | "approved" | "rejected") => {
+    if (filter === "all") {
+      setFilteredRequests(requests);
+    } else {
+      const filtered = requests.filter(request => request.status === filter);
+      setFilteredRequests(filtered);
+    }
+  };
+
+  const getStatusBadge = (status: "pending" | "approved" | "rejected") => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+      case "approved":
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>;
+      case "rejected":
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejected</Badge>;
+    }
   };
 
   return (
-    <Layout>
+    <RoleLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">OD Permission Requests</h1>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Student OD Requests</CardTitle>
-            <CardDescription>
-              Review and respond to On-Duty permission requests from students.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
-              <div className="w-full md:w-1/3">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search by name or subject..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Tabs 
-                value={activeTab} 
-                onValueChange={setActiveTab}
-                className="w-full md:w-auto"
-              >
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="pending">Pending</TabsTrigger>
-                  <TabsTrigger value="approved">Approved</TabsTrigger>
-                  <TabsTrigger value="rejected">Rejected</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">OD Requests</h1>
+          <p className="text-muted-foreground">
+            Review and manage On Duty permission requests from students
+          </p>
+        </div>
 
-            <Table>
-              <TableCaption>
-                {filteredRequests.length > 0 
-                  ? `Showing ${filteredRequests.length} OD permission requests` 
-                  : "No OD permission requests found"}
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Date(s)</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.length > 0 ? (
-                  filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-medium">{request.studentName}</TableCell>
-                      <TableCell>{request.subject}</TableCell>
-                      <TableCell>{formatDateRange(request.startDate, request.endDate)}</TableCell>
-                      <TableCell>{getStatusBadge(request.status)}</TableCell>
-                      <TableCell>{format(new Date(request.submittedOn), "PP")}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewRequest(request)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all" onClick={() => handleFilterChange("all")}>All Requests</TabsTrigger>
+            <TabsTrigger value="pending" onClick={() => handleFilterChange("pending")}>Pending</TabsTrigger>
+            <TabsTrigger value="approved" onClick={() => handleFilterChange("approved")}>Approved</TabsTrigger>
+            <TabsTrigger value="rejected" onClick={() => handleFilterChange("rejected")}>Rejected</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>All OD Requests</CardTitle>
+                <CardDescription>
+                  Showing all On Duty permission requests from students
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
-                      No OD requests found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No OD requests found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell className="font-medium">{request.id}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{request.studentName}</div>
+                            <div className="text-sm text-muted-foreground">{request.studentId}</div>
+                          </TableCell>
+                          <TableCell>{request.subject}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                {format(request.startDate, "MMM d, yyyy")}
+                                {!isSameDay(request.startDate, request.endDate) && 
+                                  ` - ${format(request.endDate, "MMM d, yyyy")}`}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(request.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8" 
+                                onClick={() => handleOpenReviewDialog(request)}
+                              >
+                                {request.status === "pending" ? "Review" : "Details"}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-      {/* View OD Request Dialog */}
-      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>OD Request Details</DialogTitle>
-            <DialogDescription>
-              Review the details of this on-duty permission request.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedRequest && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Student Name</p>
-                  <p className="font-medium">{selectedRequest.studentName}</p>
+          <TabsContent value="pending" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Requests</CardTitle>
+                <CardDescription>
+                  OD requests awaiting your review
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No pending requests found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell className="font-medium">{request.id}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{request.studentName}</div>
+                            <div className="text-sm text-muted-foreground">{request.studentId}</div>
+                          </TableCell>
+                          <TableCell>{request.subject}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                {format(request.startDate, "MMM d, yyyy")}
+                                {!isSameDay(request.startDate, request.endDate) && 
+                                  ` - ${format(request.endDate, "MMM d, yyyy")}`}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8" 
+                              onClick={() => handleOpenReviewDialog(request)}
+                            >
+                              Review
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="approved" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Approved Requests</CardTitle>
+                <CardDescription>
+                  OD requests you have approved
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No approved requests found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell className="font-medium">{request.id}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{request.studentName}</div>
+                            <div className="text-sm text-muted-foreground">{request.studentId}</div>
+                          </TableCell>
+                          <TableCell>{request.subject}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                {format(request.startDate, "MMM d, yyyy")}
+                                {!isSameDay(request.startDate, request.endDate) && 
+                                  ` - ${format(request.endDate, "MMM d, yyyy")}`}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8" 
+                              onClick={() => handleOpenReviewDialog(request)}
+                            >
+                              Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="rejected" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Rejected Requests</CardTitle>
+                <CardDescription>
+                  OD requests you have rejected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No rejected requests found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell className="font-medium">{request.id}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{request.studentName}</div>
+                            <div className="text-sm text-muted-foreground">{request.studentId}</div>
+                          </TableCell>
+                          <TableCell>{request.subject}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                {format(request.startDate, "MMM d, yyyy")}
+                                {!isSameDay(request.startDate, request.endDate) && 
+                                  ` - ${format(request.endDate, "MMM d, yyyy")}`}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8" 
+                              onClick={() => handleOpenReviewDialog(request)}
+                            >
+                              Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Review Dialog */}
+        <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedRequest?.status === "pending" 
+                  ? "Review OD Request" 
+                  : "OD Request Details"}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedRequest?.status === "pending" 
+                  ? "Review and approve or reject this On Duty permission request" 
+                  : "View details of this On Duty permission request"}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedRequest && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Student</p>
+                    <p>{selectedRequest.studentName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">ID</p>
+                    <p>{selectedRequest.studentId}</p>
+                  </div>
                 </div>
+                
                 <div>
-                  <p className="text-sm text-muted-foreground">Date(s)</p>
-                  <p className="font-medium">
-                    {formatDateRange(selectedRequest.startDate, selectedRequest.endDate)}
+                  <p className="text-sm font-medium text-muted-foreground">Subject</p>
+                  <p>{selectedRequest.subject}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Dates</p>
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <p>
+                      {format(selectedRequest.startDate, "MMMM d, yyyy")}
+                      {!isSameDay(selectedRequest.startDate, selectedRequest.endDate) && 
+                        ` - ${format(selectedRequest.endDate, "MMMM d, yyyy")}`}
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Reason</p>
+                  <p>{selectedRequest.reason}</p>
+                </div>
+                
+                {selectedRequest.supportingDetails && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Supporting Details</p>
+                    <p>{selectedRequest.supportingDetails}</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center space-x-1">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Submitted on {format(selectedRequest.submittedOn, "MMMM d, yyyy")}
                   </p>
                 </div>
+                
+                {selectedRequest.status !== "pending" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-sm font-medium">Review Information</p>
+                    </div>
+                    
+                    <div className="rounded-md bg-muted p-3 space-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Status</p>
+                        <p className="capitalize">{selectedRequest.status}</p>
+                      </div>
+                      
+                      {selectedRequest.reviewedOn && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Reviewed On</p>
+                          <p>{format(selectedRequest.reviewedOn, "MMMM d, yyyy")}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRequest.reviewedBy && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Reviewed By</p>
+                          <p>{selectedRequest.reviewedBy}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRequest.comments && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Comments</p>
+                          <p>{selectedRequest.comments}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {selectedRequest.status === "pending" && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Your Decision</p>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        className={`flex-1 ${reviewAction === "approved" ? "bg-green-100 border-green-300" : ""}`}
+                        onClick={() => setReviewAction("approved")}
+                      >
+                        Approve
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className={`flex-1 ${reviewAction === "rejected" ? "bg-red-100 border-red-300" : ""}`}
+                        onClick={() => setReviewAction("rejected")}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <p className="text-sm font-medium mb-1">Comments</p>
+                      <Textarea 
+                        placeholder="Add comments about your decision"
+                        value={reviewComments}
+                        onChange={(e) => setReviewComments(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground">Subject</p>
-                <p className="font-medium">{selectedRequest.subject}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground">Reason</p>
-                <p>{selectedRequest.reason}</p>
-              </div>
-              
-              {selectedRequest.supportingDetails && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Additional Details</p>
-                  <p>{selectedRequest.supportingDetails}</p>
-                </div>
-              )}
-              
-              <div>
-                <p className="text-sm text-muted-foreground">Submitted On</p>
-                <p>{format(new Date(selectedRequest.submittedOn), "PPp")}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm font-medium">Reviewer Comments</p>
-                <Textarea
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  placeholder="Add your comments here..."
-                  rows={3}
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter className="flex justify-between">
-            {selectedRequest && selectedRequest.status === "pending" ? (
-              <>
-                <Button variant="outline" onClick={() => setIsViewOpen(false)}>
-                  Cancel
-                </Button>
-                <div className="space-x-2">
-                  <Button variant="destructive" onClick={handleReject}>
-                    <X className="mr-2 h-4 w-4" />
-                    Reject
-                  </Button>
-                  <Button variant="default" onClick={handleApprove}>
-                    <Check className="mr-2 h-4 w-4" />
-                    Approve
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <Button variant="outline" onClick={() => setIsViewOpen(false)}>
-                Close
-              </Button>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Layout>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setReviewDialogOpen(false)}
+              >
+                {selectedRequest?.status === "pending" ? "Cancel" : "Close"}
+              </Button>
+              
+              {selectedRequest?.status === "pending" && (
+                <Button 
+                  disabled={!reviewAction} 
+                  onClick={handleSubmitReview}
+                >
+                  Submit Review
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </RoleLayout>
   );
 };
+
+// Helper function to check if two dates are the same day
+function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+}
 
 export default ODRequestsPage;
