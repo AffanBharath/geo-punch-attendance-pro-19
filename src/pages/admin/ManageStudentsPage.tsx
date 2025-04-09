@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  GraduationCap, Search, Plus, MoreHorizontal, Pencil, Trash2, Eye, FileSpreadsheet 
+  GraduationCap, Search, Plus, MoreHorizontal, Pencil, Trash2, Eye, FileSpreadsheet,
+  Fingerprint // Added Fingerprint import here
 } from "lucide-react";
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
