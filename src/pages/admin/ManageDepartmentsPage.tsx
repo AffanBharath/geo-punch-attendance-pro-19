@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import RoleLayout from "@/components/RoleLayout";
 import {
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"; 
 import { useToast } from "@/hooks/use-toast";
 import {
   Building,
@@ -136,7 +136,6 @@ const ManageDepartmentsPage = () => {
   });
   
   const handleAddDepartment = () => {
-    // Validation
     if (!departmentForm.name || !departmentForm.code || !departmentForm.hod) {
       toast({
         title: "Missing Information",
@@ -165,7 +164,6 @@ const ManageDepartmentsPage = () => {
       description: `${newDepartment.name} department has been added successfully`,
     });
     
-    // Reset form
     setDepartmentForm({
       name: '',
       code: '',
@@ -188,7 +186,6 @@ const ManageDepartmentsPage = () => {
   const handleUpdateDepartment = () => {
     if (!currentDepartment) return;
     
-    // Validation
     if (!departmentForm.name || !departmentForm.code || !departmentForm.hod) {
       toast({
         title: "Missing Information",
@@ -219,7 +216,6 @@ const ManageDepartmentsPage = () => {
       description: `${departmentForm.name} department has been updated successfully`,
     });
     
-    // Reset form and current department
     setCurrentDepartment(null);
     setDepartmentForm({
       name: '',
@@ -405,7 +401,6 @@ const ManageDepartmentsPage = () => {
         </Card>
       </div>
       
-      {/* Add Department Dialog */}
       <Dialog open={addDepartmentOpen} onOpenChange={setAddDepartmentOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -464,7 +459,6 @@ const ManageDepartmentsPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Department Dialog */}
       <Dialog open={editDepartmentOpen} onOpenChange={setEditDepartmentOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -520,7 +514,6 @@ const ManageDepartmentsPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Delete Department Dialog */}
       <Dialog open={deleteDepartmentOpen} onOpenChange={setDeleteDepartmentOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -548,7 +541,6 @@ const ManageDepartmentsPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* System Maintenance Dialog */}
       <Dialog open={systemMaintenanceOpen} onOpenChange={setSystemMaintenanceOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
