@@ -73,6 +73,11 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
             path: "/staff/dashboard",
           },
           {
+            title: "Departments",
+            icon: <Building className="h-5 w-5" />,
+            path: "/staff/departments",
+          },
+          {
             title: "Students",
             icon: <GraduationCap className="h-5 w-5" />,
             path: "/staff/students",

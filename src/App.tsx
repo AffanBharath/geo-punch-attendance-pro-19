@@ -34,6 +34,9 @@ import ManageDepartmentsPage from "./pages/admin/ManageDepartmentsPage";
 // Staff Pages
 import StudentDetailsPage from "./pages/staff/StudentDetailsPage";
 import ODRequestsPage from "./pages/staff/ODRequestsPage";
+import DepartmentsPage from "./pages/staff/DepartmentsPage";
+import DepartmentDetailsPage from "./pages/staff/DepartmentDetailsPage";
+import StudentsByYearPage from "./pages/staff/StudentsByYearPage";
 
 // Student Pages
 import ODPermissionPage from "./pages/student/ODPermissionPage";
@@ -124,6 +127,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/student/courses" 
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <NotFound />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Staff Routes */}
             <Route 
@@ -135,7 +146,39 @@ const App = () => (
               } 
             />
             <Route 
+              path="/staff/departments" 
+              element={
+                <ProtectedRoute allowedRoles={['staff']}>
+                  <DepartmentsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/staff/departments/:departmentId" 
+              element={
+                <ProtectedRoute allowedRoles={['staff']}>
+                  <DepartmentDetailsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/staff/departments/:departmentId/:year/:section" 
+              element={
+                <ProtectedRoute allowedRoles={['staff']}>
+                  <StudentsByYearPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/staff/students" 
+              element={
+                <ProtectedRoute allowedRoles={['staff']}>
+                  <StudentDetailsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/staff/students/:studentId" 
               element={
                 <ProtectedRoute allowedRoles={['staff']}>
                   <StudentDetailsPage />
