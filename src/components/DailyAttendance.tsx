@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ const DailyAttendance = () => {
   const { user } = useAuth();
 
   // Department location in Chennai
-  const departmentLocation = { lat: 12.8396028, lng: 80.1552075 };
+  const departmentLocation = { lat: 13.02528, lng: 80.2193408 };
   const geoFencingRadius = 100; // in meters
 
   // College working hours: 9 AM to 3:15 PM

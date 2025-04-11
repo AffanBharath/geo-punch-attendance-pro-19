@@ -1,6 +1,7 @@
 
 import Layout from "@/components/Layout";
 import MaintenanceMode from "@/components/MaintenanceMode";
+import DepartmentLocationSettings from "@/components/admin/DepartmentLocationSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Users, GraduationCap, Building, BookOpen } from "lucide-react";
@@ -15,9 +16,10 @@ const AdminDashboardPage = () => {
         <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* First column with maintenance mode card */}
-          <div className="md:col-span-1">
+          {/* First column with maintenance mode card and department location card */}
+          <div className="md:col-span-1 space-y-6">
             <MaintenanceMode />
+            <DepartmentLocationSettings />
           </div>
           
           {/* Stats and quick links */}
