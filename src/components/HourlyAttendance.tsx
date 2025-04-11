@@ -12,12 +12,18 @@ const HourlyAttendance = () => {
   const [isWithinRadius, setIsWithinRadius] = useState<boolean | null>(null);
   const [checkedIn, setCheckedIn] = useState(false);
   const [lastCheckIn, setLastCheckIn] = useState<string | null>(null);
+  const [showBiometricScan, setShowBiometricScan] = useState(false);
+  const [biometricAction, setBiometricAction] = useState<"check-in" | "check-out">("check-in");
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Department location
-  const departmentLocation = { lat: 13.0351104, lng: 80.2127872 };
+  // Updated department location to Chennai
+  const departmentLocation = { lat: 12.8396028, lng: 80.1552075 };
   const geoFencingRadius = 100; // in meters
+
+  // College working hours: 9 AM to 3:15 PM
+  const workingHoursStart = 9; // 9 AM
+  const workingHoursEnd = 15.25; // 3:15 PM
 
   useEffect(() => {
     // Check if user is already checked in
@@ -103,86 +109,75 @@ const HourlyAttendance = () => {
     return distance;
   };
 
-  const handleCheckIn = () => {
+  // Check if current time is within working hours
+  const isWithinWorkingHours = () => {
+    const now = new Date();
+    const hours = now.getHours() + now.getMinutes() / 60;
+    return hours >= workingHoursStart && hours <= workingHoursEnd;
+  };
+
+  const handleInitiateBiometricScan = (action: "check-in" | "check-out") => {
+    if (!isWithinRadius) {
+      toast({
+        variant: "destructive",
+        title: "Geofencing Error",
+        description: "You are outside the department location for attendance",
+      });
+      return;
+    }
+
+    if (!isWithinWorkingHours() && action === "check-in") {
+      toast({
+        variant: "destructive",
+        title: "Outside Working Hours",
+        description: "Check-in can only be done between 9:00 AM and 3:15 PM",
+      });
+      return;
+    }
+
+    setBiometricAction(action);
+    setShowBiometricScan(true);
+  };
+
+  const handleBiometricAuthentication = () => {
     setLoading(true);
     
     // Simulate fingerprint scanning
     setTimeout(() => {
-      if (isWithinRadius) {
-        const now = new Date();
-        const attendanceRecord = {
-          userId: user?.id || "1",
-          name: user?.name || "User",
-          date: now.toLocaleDateString(),
-          time: now.toLocaleTimeString(),
-          type: "Check In",
-          location: location,
-          timestamp: now.getTime(),
-          attendanceType: "hourly"
-        };
-        
-        // Store in local storage
-        const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-        existingRecords.push(attendanceRecord);
-        localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
-        
-        toast({
-          title: "Check-in Successful",
-          description: `You have checked in at ${now.toLocaleTimeString()}`,
-        });
-        
+      const now = new Date();
+      const attendanceRecord = {
+        userId: user?.id || "1",
+        name: user?.name || "User",
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
+        type: biometricAction === "check-in" ? "Check In" : "Check Out",
+        location: location,
+        timestamp: now.getTime(),
+        attendanceType: "hourly",
+        verificationMethod: "biometric"
+      };
+      
+      // Store in local storage
+      const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+      existingRecords.push(attendanceRecord);
+      localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
+      
+      toast({
+        title: "Biometric Authentication Successful",
+        description: biometricAction === "check-in" 
+          ? `You have checked in at ${now.toLocaleTimeString()}`
+          : `You have checked out at ${now.toLocaleTimeString()}`,
+      });
+      
+      if (biometricAction === "check-in") {
         setCheckedIn(true);
         setLastCheckIn(now.toLocaleTimeString());
       } else {
-        toast({
-          variant: "destructive",
-          title: "Geofencing Error",
-          description: "You are outside the department location for attendance",
-        });
-      }
-      
-      setLoading(false);
-    }, 2000);
-  };
-
-  const handleCheckOut = () => {
-    setLoading(true);
-    
-    // Simulate fingerprint scanning
-    setTimeout(() => {
-      if (isWithinRadius) {
-        const now = new Date();
-        const attendanceRecord = {
-          userId: user?.id || "1",
-          name: user?.name || "User",
-          date: now.toLocaleDateString(),
-          time: now.toLocaleTimeString(),
-          type: "Check Out",
-          location: location,
-          timestamp: now.getTime(),
-          attendanceType: "hourly"
-        };
-        
-        // Store in local storage
-        const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-        existingRecords.push(attendanceRecord);
-        localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
-        
-        toast({
-          title: "Check-out Successful",
-          description: `You have checked out at ${now.toLocaleTimeString()}`,
-        });
-        
         setCheckedIn(false);
         setLastCheckIn(null);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Geofencing Error",
-          description: "You are outside the department location for attendance",
-        });
       }
       
+      setShowBiometricScan(false);
       setLoading(false);
     }, 2000);
   };
@@ -192,27 +187,34 @@ const HourlyAttendance = () => {
       <CardHeader>
         <CardTitle>Hourly Attendance</CardTitle>
         <CardDescription>
-          Check in and out to track your hours
+          Check in and out to track your hours (9:00 AM - 3:15 PM)
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center space-y-6">
           <div className="relative">
-            <div className={`w-40 h-40 rounded-full flex items-center justify-center ${
-              loading 
-                ? "bg-primary/20" 
-                : checkedIn
-                ? "bg-green-100"
-                : isWithinRadius 
-                  ? "bg-blue-100" 
-                  : isWithinRadius === false 
-                    ? "bg-red-100" 
-                    : "bg-gray-100"
-            }`}>
+            <div 
+              className={`w-40 h-40 rounded-full flex items-center justify-center ${
+                loading 
+                  ? "bg-primary/20" 
+                  : showBiometricScan
+                  ? "bg-blue-100 cursor-pointer"
+                  : checkedIn
+                  ? "bg-green-100"
+                  : isWithinRadius 
+                    ? "bg-blue-100" 
+                    : isWithinRadius === false 
+                      ? "bg-red-100" 
+                      : "bg-gray-100"
+              }`}
+              onClick={showBiometricScan ? handleBiometricAuthentication : undefined}
+            >
               <Fingerprint
                 className={`h-20 w-20 ${
                   loading 
                     ? "text-primary animate-pulse" 
+                    : showBiometricScan
+                    ? "text-blue-500 animate-pulse"
                     : checkedIn
                     ? "text-green-500"
                     : isWithinRadius 
@@ -257,7 +259,23 @@ const HourlyAttendance = () => {
               )}
             </div>
             
-            {checkedIn ? (
+            {showBiometricScan ? (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded p-4 text-center">
+                  <p className="text-blue-700 font-medium">
+                    Please scan your fingerprint to {biometricAction === "check-in" ? "check in" : "check out"}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">Tap on the fingerprint icon above</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowBiometricScan(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : checkedIn ? (
               <div className="space-y-4">
                 <div className="bg-green-50 border border-green-200 rounded p-4 text-center">
                   <div className="flex items-center justify-center gap-2 text-green-700">
@@ -273,19 +291,27 @@ const HourlyAttendance = () => {
                 <Button
                   className="w-full bg-blue-600 hover:bg-blue-700"
                   disabled={loading || !location || !isWithinRadius}
-                  onClick={handleCheckOut}
+                  onClick={() => handleInitiateBiometricScan("check-out")}
                 >
-                  Check Out
+                  Scan Fingerprint to Check Out
                 </Button>
               </div>
             ) : (
               <Button
                 className="w-full bg-green-600 hover:bg-green-700"
-                disabled={loading || !location || !isWithinRadius}
-                onClick={handleCheckIn}
+                disabled={loading || !location || !isWithinRadius || !isWithinWorkingHours()}
+                onClick={() => handleInitiateBiometricScan("check-in")}
               >
-                Check In
+                Scan Fingerprint to Check In
               </Button>
+            )}
+            
+            {!isWithinWorkingHours() && location && !checkedIn && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-4 text-center mt-4">
+                <p className="text-yellow-700 text-sm">
+                  Note: Check-in can only be done during college hours (9:00 AM - 3:15 PM)
+                </p>
+              </div>
             )}
           </div>
         </div>

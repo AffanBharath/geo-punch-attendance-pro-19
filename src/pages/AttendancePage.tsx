@@ -42,7 +42,7 @@ const AttendancePage = () => {
                       <div className="flex items-start space-x-2">
                         <div className="w-2 h-2 mt-1.5 rounded-full bg-primary"></div>
                         <p className="text-sm text-muted-foreground">
-                          Standard working hours: 9:00 AM - 6:00 PM, Monday to Friday.
+                          College working hours: 9:00 AM - 3:15 PM, Monday to Friday.
                         </p>
                       </div>
                       <div className="flex items-start space-x-2">
@@ -60,7 +60,7 @@ const AttendancePage = () => {
                       <div className="flex items-start space-x-2">
                         <div className="w-2 h-2 mt-1.5 rounded-full bg-primary"></div>
                         <p className="text-sm text-muted-foreground">
-                          Early departure (before 5:45 PM) requires manager approval.
+                          Early departure (before 3:00 PM) requires manager approval.
                         </p>
                       </div>
                     </div>
@@ -105,6 +105,12 @@ const AttendancePage = () => {
                         You must be physically present at the department to mark attendance.
                       </p>
                     </div>
+                    <div className="flex items-start space-x-2">
+                      <div className="w-2 h-2 mt-1.5 rounded-full bg-primary"></div>
+                      <p className="text-sm text-muted-foreground">
+                        College working hours: 9:00 AM to 3:15 PM.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -136,6 +142,12 @@ const AttendancePage = () => {
                       <div className="w-2 h-2 mt-1.5 rounded-full bg-primary"></div>
                       <p className="text-sm text-muted-foreground">
                         Don't forget to check out before leaving the department.
+                      </p>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <div className="w-2 h-2 mt-1.5 rounded-full bg-primary"></div>
+                      <p className="text-sm text-muted-foreground">
+                        College working hours: 9:00 AM to 3:15 PM.
                       </p>
                     </div>
                   </div>

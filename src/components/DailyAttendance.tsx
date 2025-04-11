@@ -11,12 +11,17 @@ const DailyAttendance = () => {
   const [loading, setLoading] = useState(false);
   const [isWithinRadius, setIsWithinRadius] = useState<boolean | null>(null);
   const [hasMarkedAttendance, setHasMarkedAttendance] = useState(false);
+  const [showBiometricScan, setShowBiometricScan] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Department location
-  const departmentLocation = { lat: 13.0351104, lng: 80.2127872 };
+  // Updated department location to Chennai
+  const departmentLocation = { lat: 12.8396028, lng: 80.1552075 };
   const geoFencingRadius = 100; // in meters
+
+  // College working hours: 9 AM to 3:15 PM
+  const workingHoursStart = 9; // 9 AM
+  const workingHoursEnd = 15.25; // 3:15 PM
 
   useEffect(() => {
     // Check if user has already marked attendance today
@@ -90,43 +95,66 @@ const DailyAttendance = () => {
     return distance;
   };
 
-  const handleMarkAttendance = () => {
+  // Check if current time is within working hours
+  const isWithinWorkingHours = () => {
+    const now = new Date();
+    const hours = now.getHours() + now.getMinutes() / 60;
+    return hours >= workingHoursStart && hours <= workingHoursEnd;
+  };
+
+  const handleInitiateBiometricScan = () => {
+    if (!isWithinRadius) {
+      toast({
+        variant: "destructive",
+        title: "Geofencing Error",
+        description: "You are outside the department location for attendance",
+      });
+      return;
+    }
+
+    if (!isWithinWorkingHours()) {
+      toast({
+        variant: "destructive",
+        title: "Outside Working Hours",
+        description: "Attendance can only be marked between 9:00 AM and 3:15 PM",
+      });
+      return;
+    }
+
+    setShowBiometricScan(true);
+  };
+
+  const handleBiometricAuthentication = () => {
     setLoading(true);
     
     // Simulate fingerprint scanning
     setTimeout(() => {
-      if (isWithinRadius) {
-        const now = new Date();
-        const attendanceRecord = {
-          userId: user?.id || "1",
-          name: user?.name || "User",
-          date: now.toLocaleDateString(),
-          time: now.toLocaleTimeString(),
-          type: "Present",
-          location: location,
-          timestamp: now.getTime(),
-          attendanceType: "daily"
-        };
-        
-        // Store in local storage
-        const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-        existingRecords.push(attendanceRecord);
-        localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
-        
-        toast({
-          title: "Attendance Marked",
-          description: `Your attendance has been marked for today (${now.toLocaleDateString()})`,
-        });
-        
-        setHasMarkedAttendance(true);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Geofencing Error",
-          description: "You are outside the department location for attendance",
-        });
-      }
+      // Simulate successful biometric authentication
+      const now = new Date();
+      const attendanceRecord = {
+        userId: user?.id || "1",
+        name: user?.name || "User",
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
+        type: "Present",
+        location: location,
+        timestamp: now.getTime(),
+        attendanceType: "daily",
+        verificationMethod: "biometric"
+      };
       
+      // Store in local storage
+      const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+      existingRecords.push(attendanceRecord);
+      localStorage.setItem('attendanceRecords', JSON.stringify(existingRecords));
+      
+      toast({
+        title: "Biometric Authentication Successful",
+        description: `Your attendance has been marked for today (${now.toLocaleDateString()})`,
+      });
+      
+      setHasMarkedAttendance(true);
+      setShowBiometricScan(false);
       setLoading(false);
     }, 2000);
   };
@@ -136,29 +164,36 @@ const DailyAttendance = () => {
       <CardHeader>
         <CardTitle>Daily Attendance</CardTitle>
         <CardDescription>
-          Mark your attendance for the day
+          Mark your attendance for the day (9:00 AM - 3:15 PM)
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center space-y-6">
           <div className="relative">
-            <div className={`w-40 h-40 rounded-full flex items-center justify-center ${
-              loading 
-                ? "bg-primary/20" 
-                : hasMarkedAttendance
-                ? "bg-green-100"
-                : isWithinRadius 
-                  ? "bg-blue-100" 
-                  : isWithinRadius === false 
-                    ? "bg-red-100" 
-                    : "bg-gray-100"
-            }`}>
+            <div 
+              className={`w-40 h-40 rounded-full flex items-center justify-center ${
+                loading 
+                  ? "bg-primary/20" 
+                  : hasMarkedAttendance
+                  ? "bg-green-100"
+                  : showBiometricScan
+                  ? "bg-blue-100 cursor-pointer"
+                  : isWithinRadius 
+                    ? "bg-blue-100" 
+                    : isWithinRadius === false 
+                      ? "bg-red-100" 
+                      : "bg-gray-100"
+              }`}
+              onClick={showBiometricScan ? handleBiometricAuthentication : undefined}
+            >
               <Fingerprint
                 className={`h-20 w-20 ${
                   loading 
                     ? "text-primary animate-pulse" 
                     : hasMarkedAttendance
                     ? "text-green-500"
+                    : showBiometricScan
+                    ? "text-blue-500 animate-pulse"
                     : isWithinRadius 
                       ? "text-blue-500" 
                       : isWithinRadius === false 
@@ -205,14 +240,36 @@ const DailyAttendance = () => {
               <div className="bg-green-50 border border-green-200 rounded p-4 text-center">
                 <p className="text-green-700 font-medium">Your attendance has been marked for today</p>
               </div>
+            ) : showBiometricScan ? (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded p-4 text-center">
+                  <p className="text-blue-700 font-medium">Please scan your fingerprint to mark attendance</p>
+                  <p className="text-xs text-blue-600 mt-1">Tap on the fingerprint icon above</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowBiometricScan(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
             ) : (
               <Button
                 className="w-full"
-                disabled={loading || !location || !isWithinRadius}
-                onClick={handleMarkAttendance}
+                disabled={loading || !location || !isWithinRadius || !isWithinWorkingHours()}
+                onClick={handleInitiateBiometricScan}
               >
-                Mark Attendance
+                Scan Fingerprint
               </Button>
+            )}
+            
+            {!isWithinWorkingHours() && location && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-4 text-center mt-4">
+                <p className="text-yellow-700 text-sm">
+                  Note: Attendance can only be marked during college hours (9:00 AM - 3:15 PM)
+                </p>
+              </div>
             )}
           </div>
         </div>
