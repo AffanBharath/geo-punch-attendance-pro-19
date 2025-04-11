@@ -64,19 +64,19 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         student: {
-          primary: "#4f46e5",
-          secondary: "#818cf8",
-          accent: "#c7d2fe",
+          primary: "#e64c00",
+          secondary: "#ff8c42",
+          accent: "#ffdbcc",
         },
         staff: {
-          primary: "#0891b2",
-          secondary: "#22d3ee",
-          accent: "#a5f3fc",
+          primary: "#b3381d",
+          secondary: "#e65c33",
+          accent: "#ffd1c0",
         },
         admin: {
-          primary: "#9333ea",
-          secondary: "#c084fc",
-          accent: "#e9d5ff",
+          primary: "#8b2500",
+          secondary: "#cc4e14",
+          accent: "#ffc2a3",
         },
       },
       borderRadius: {

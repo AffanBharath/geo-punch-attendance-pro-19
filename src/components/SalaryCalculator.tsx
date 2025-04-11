@@ -20,7 +20,7 @@ const SalaryCalculator = () => {
   const [salaryData, setSalaryData] = useState({
     daysPresent: 0,
     daysAbsent: 0,
-    baseSalary: 3000,
+    baseSalary: 250000,
     deductions: 0,
     netSalary: 0,
     totalWorkingDays: 21,
@@ -46,7 +46,7 @@ const SalaryCalculator = () => {
       const daysAbsent = totalWorkingDays - daysPresent;
       
       // Calculate salary
-      const baseSalary = 3000; // $3000 per month
+      const baseSalary = 250000; // ₹250,000 per month
       const dailyRate = baseSalary / totalWorkingDays;
       const deductions = daysAbsent * dailyRate;
       const netSalary = baseSalary - deductions;
@@ -73,11 +73,20 @@ const SalaryCalculator = () => {
   const currentMonth = getMonthName(new Date().getMonth());
   const previousMonth = getMonthName((new Date().getMonth() - 1 + 12) % 12);
 
+  // Format currency in INR
+  const formatINR = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="current">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Salary Details</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Salary Details</h2>
           <TabsList>
             <TabsTrigger value="current">Current Month</TabsTrigger>
             <TabsTrigger value="previous">Previous Month</TabsTrigger>
@@ -102,7 +111,7 @@ const SalaryCalculator = () => {
                     <CardTitle className="text-sm font-medium">Base Salary</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${salaryData.baseSalary.toFixed(2)}</div>
+                    <div className="text-2xl font-bold">{formatINR(salaryData.baseSalary)}</div>
                     <p className="text-xs text-muted-foreground">Monthly salary before deductions</p>
                   </CardContent>
                 </Card>
@@ -112,7 +121,7 @@ const SalaryCalculator = () => {
                     <CardTitle className="text-sm font-medium">Deductions</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-red-500">-${salaryData.deductions.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-red-500">-{formatINR(salaryData.deductions)}</div>
                     <p className="text-xs text-muted-foreground">Based on {salaryData.daysAbsent} absent days</p>
                   </CardContent>
                 </Card>
@@ -122,7 +131,7 @@ const SalaryCalculator = () => {
                     <CardTitle className="text-sm font-medium">Net Salary</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">${salaryData.netSalary.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-green-600">{formatINR(salaryData.netSalary)}</div>
                     <p className="text-xs text-muted-foreground">Final amount after deductions</p>
                   </CardContent>
                 </Card>
@@ -146,23 +155,23 @@ const SalaryCalculator = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Basic Salary</span>
-                    <span className="text-sm font-medium">${salaryData.baseSalary.toFixed(2)}</span>
+                    <span className="text-sm font-medium">{formatINR(salaryData.baseSalary)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Attendance Bonus</span>
-                    <span className="text-sm font-medium">$0.00</span>
+                    <span className="text-sm font-medium">{formatINR(0)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Overtime</span>
-                    <span className="text-sm font-medium">$0.00</span>
+                    <span className="text-sm font-medium">{formatINR(0)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Absence Deduction</span>
-                    <span className="text-sm font-medium text-red-500">-${salaryData.deductions.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-red-500">-{formatINR(salaryData.deductions)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="font-semibold">Net Salary</span>
-                    <span className="font-semibold">${salaryData.netSalary.toFixed(2)}</span>
+                    <span className="font-semibold">{formatINR(salaryData.netSalary)}</span>
                   </div>
                 </div>
               </div>
