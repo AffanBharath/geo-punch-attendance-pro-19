@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, MapPin, Clock } from "lucide-react";
+import { Fingerprint, MapPin, Clock, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -14,10 +13,11 @@ const HourlyAttendance = () => {
   const [lastCheckIn, setLastCheckIn] = useState<string | null>(null);
   const [showBiometricScan, setShowBiometricScan] = useState(false);
   const [biometricAction, setBiometricAction] = useState<"check-in" | "check-out">("check-in");
+  const [locationError, setLocationError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Updated department location to Chennai
+  // Department location in Chennai
   const departmentLocation = { lat: 12.8396028, lng: 80.1552075 };
   const geoFencingRadius = 100; // in meters
 
@@ -64,6 +64,7 @@ const HourlyAttendance = () => {
             lng: position.coords.longitude,
           };
           setLocation(currentLocation);
+          setLocationError(null);
           
           // Check if within geofencing radius
           const distance = calculateDistance(
@@ -76,18 +77,46 @@ const HourlyAttendance = () => {
           setIsWithinRadius(distance <= geoFencingRadius);
         },
         (error) => {
+          let errorMessage = "Unable to get your location";
+          
+          // Provide more specific error messages
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Location access denied. Please enable location permissions in your browser settings to mark attendance.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable. Please try again later.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out. Please try again.";
+              break;
+            default:
+              errorMessage = `Unable to get your location: ${error.message}`;
+          }
+          
+          setLocationError(errorMessage);
+          setIsWithinRadius(false);
+          
           toast({
             variant: "destructive",
             title: "Location Error",
-            description: `Unable to get your location: ${error.message}`,
+            description: errorMessage,
           });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } else {
+      const errorMessage = "Your browser does not support geolocation. Please use a modern browser to mark attendance.";
+      setLocationError(errorMessage);
+      
       toast({
         variant: "destructive",
         title: "Geolocation Not Supported",
-        description: "Your browser does not support geolocation",
+        description: errorMessage,
       });
     }
   }, [user]);
@@ -182,6 +211,68 @@ const HourlyAttendance = () => {
     }, 2000);
   };
 
+  const requestLocationPermission = () => {
+    if (navigator.geolocation) {
+      setLocationError(null);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setLocation(currentLocation);
+          
+          // Check if within geofencing radius
+          const distance = calculateDistance(
+            currentLocation.lat,
+            currentLocation.lng,
+            departmentLocation.lat,
+            departmentLocation.lng
+          );
+          
+          setIsWithinRadius(distance <= geoFencingRadius);
+          
+          toast({
+            title: "Location Access Granted",
+            description: "Your location has been successfully detected.",
+          });
+        },
+        (error) => {
+          let errorMessage = "Unable to get your location";
+          
+          // Provide more specific error messages
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Location access denied. Please enable location permissions in your browser settings to mark attendance.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable. Please try again later.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out. Please try again.";
+              break;
+            default:
+              errorMessage = `Unable to get your location: ${error.message}`;
+          }
+          
+          setLocationError(errorMessage);
+          setIsWithinRadius(false);
+          
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: errorMessage,
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -201,6 +292,8 @@ const HourlyAttendance = () => {
                   ? "bg-blue-100 cursor-pointer"
                   : checkedIn
                   ? "bg-green-100"
+                  : locationError
+                  ? "bg-red-100"
                   : isWithinRadius 
                     ? "bg-blue-100" 
                     : isWithinRadius === false 
@@ -209,21 +302,25 @@ const HourlyAttendance = () => {
               }`}
               onClick={showBiometricScan ? handleBiometricAuthentication : undefined}
             >
-              <Fingerprint
-                className={`h-20 w-20 ${
-                  loading 
-                    ? "text-primary animate-pulse" 
-                    : showBiometricScan
-                    ? "text-blue-500 animate-pulse"
-                    : checkedIn
-                    ? "text-green-500"
-                    : isWithinRadius 
-                      ? "text-blue-500" 
-                      : isWithinRadius === false 
-                        ? "text-red-500" 
-                        : "text-gray-400"
-                }`}
-              />
+              {locationError ? (
+                <AlertTriangle className="h-20 w-20 text-red-500" />
+              ) : (
+                <Fingerprint
+                  className={`h-20 w-20 ${
+                    loading 
+                      ? "text-primary animate-pulse" 
+                      : showBiometricScan
+                      ? "text-blue-500 animate-pulse"
+                      : checkedIn
+                      ? "text-green-500"
+                      : isWithinRadius 
+                        ? "text-blue-500" 
+                        : isWithinRadius === false 
+                          ? "text-red-500" 
+                          : "text-gray-400"
+                  }`}
+                />
+              )}
               {loading && (
                 <>
                   <span className="absolute inset-0 rounded-full animate-ripple bg-primary/20"></span>
@@ -234,30 +331,43 @@ const HourlyAttendance = () => {
           </div>
 
           <div className="w-full space-y-4">
-            <div className="flex items-center justify-center space-x-2 text-sm">
-              <MapPin className={`h-4 w-4 ${
-                isWithinRadius 
-                  ? "text-green-500" 
-                  : isWithinRadius === false 
-                    ? "text-red-500" 
-                    : "text-gray-400"
-              }`} />
-              <span>
-                {isWithinRadius === null
-                  ? "Getting your location..."
-                  : isWithinRadius
-                  ? "You're within the department geofence"
-                  : "Warning: You're outside the department geofence"}
-              </span>
-            </div>
+            {locationError ? (
+              <div className="bg-red-50 border border-red-200 rounded p-4 text-center">
+                <p className="text-red-700 font-medium">Location Error</p>
+                <p className="text-sm text-red-600 mt-1">{locationError}</p>
+                <Button 
+                  className="mt-3 bg-red-600 hover:bg-red-700"
+                  onClick={requestLocationPermission}
+                >
+                  Grant Location Access
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center space-x-2 text-sm">
+                <MapPin className={`h-4 w-4 ${
+                  isWithinRadius 
+                    ? "text-green-500" 
+                    : isWithinRadius === false 
+                      ? "text-red-500" 
+                      : "text-gray-400"
+                }`} />
+                <span>
+                  {isWithinRadius === null
+                    ? "Getting your location..."
+                    : isWithinRadius
+                    ? "You're within the department geofence"
+                    : "Warning: You're outside the department geofence"}
+                </span>
+              </div>
+            )}
             
-            <div className="text-center text-sm text-muted-foreground">
-              {location && (
+            {location && !locationError && (
+              <div className="text-center text-sm text-muted-foreground">
                 <p>
                   Current coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
             
             {showBiometricScan ? (
               <div className="space-y-4">
@@ -275,6 +385,8 @@ const HourlyAttendance = () => {
                   Cancel
                 </Button>
               </div>
+            ) : locationError ? (
+              null // Don't show check-in/out buttons if there's a location error
             ) : checkedIn ? (
               <div className="space-y-4">
                 <div className="bg-green-50 border border-green-200 rounded p-4 text-center">
@@ -306,7 +418,7 @@ const HourlyAttendance = () => {
               </Button>
             )}
             
-            {!isWithinWorkingHours() && location && !checkedIn && (
+            {!locationError && !isWithinWorkingHours() && location && !checkedIn && (
               <div className="bg-yellow-50 border border-yellow-200 rounded p-4 text-center mt-4">
                 <p className="text-yellow-700 text-sm">
                   Note: Check-in can only be done during college hours (9:00 AM - 3:15 PM)
