@@ -16,8 +16,8 @@ const DailyAttendance = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Department location in Chennai
-  const departmentLocation = { lat: 13.02528, lng: 80.2193408 };
+  // Department location in Chennai - updated coordinates
+  const departmentLocation = { lat: 12.8396331, lng: 80.1552515 };
   const geoFencingRadius = 100; // in meters
 
   // College working hours: 9 AM to 3:15 PM

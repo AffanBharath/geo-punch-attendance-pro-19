@@ -18,8 +18,8 @@ interface DepartmentLocation {
 const DepartmentLocationSettings = () => {
   const [departmentLocations, setDepartmentLocations] = useState<DepartmentLocation[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-  const [latitude, setLatitude] = useState<string>("13.02528");
-  const [longitude, setLongitude] = useState<string>("80.2193408");
+  const [latitude, setLatitude] = useState<string>("12.8396331");
+  const [longitude, setLongitude] = useState<string>("80.1552515");
   const [radius, setRadius] = useState<string>("100");
   const { toast } = useToast();
 
