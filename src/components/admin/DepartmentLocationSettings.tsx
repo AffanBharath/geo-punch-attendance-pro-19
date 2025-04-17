@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Save } from "lucide-react";
+import { MapPin, Save, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DepartmentLocation {
@@ -24,6 +24,10 @@ const DepartmentLocationSettings = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    loadDepartmentLocations();
+  }, []);
+
+  const loadDepartmentLocations = () => {
     // Load department locations from localStorage
     const storedLocations = localStorage.getItem("departmentLocations");
     if (storedLocations) {
@@ -31,18 +35,39 @@ const DepartmentLocationSettings = () => {
     } else {
       // Initialize with default department locations if no data exists
       const departments = JSON.parse(localStorage.getItem("departments") || "[]");
-      const defaultLocations = departments.map((dept: any) => ({
-        id: dept.id,
-        name: dept.name,
-        latitude: 13.02528,
-        longitude: 80.2193408,
-        radius: 100
-      }));
       
-      setDepartmentLocations(defaultLocations);
-      localStorage.setItem("departmentLocations", JSON.stringify(defaultLocations));
+      // If no departments exist, create a default one
+      if (departments.length === 0) {
+        const defaultDepartment = {
+          id: "default-dept",
+          name: "Default Department"
+        };
+        
+        const defaultLocations = [{
+          id: defaultDepartment.id,
+          name: defaultDepartment.name,
+          latitude: 12.8396331,
+          longitude: 80.1552515,
+          radius: 100
+        }];
+        
+        setDepartmentLocations(defaultLocations);
+        localStorage.setItem("departmentLocations", JSON.stringify(defaultLocations));
+        localStorage.setItem("departments", JSON.stringify([defaultDepartment]));
+      } else {
+        const defaultLocations = departments.map((dept: any) => ({
+          id: dept.id,
+          name: dept.name,
+          latitude: 12.8396331,
+          longitude: 80.1552515,
+          radius: 100
+        }));
+        
+        setDepartmentLocations(defaultLocations);
+        localStorage.setItem("departmentLocations", JSON.stringify(defaultLocations));
+      }
     }
-  }, []);
+  };
 
   useEffect(() => {
     // Load department data when component mounts
@@ -141,67 +166,79 @@ const DepartmentLocationSettings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="department-select">Select Department</Label>
-          <select 
-            id="department-select"
-            className="w-full p-2 border rounded-md"
-            value={selectedDepartment}
-            onChange={(e) => handleDepartmentChange(e.target.value)}
-          >
-            {departmentLocations.map(dept => (
-              <option key={dept.id} value={dept.id}>{dept.name}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="latitude">Latitude</Label>
-            <Input
-              id="latitude"
-              type="text"
-              value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
-              placeholder="e.g., 13.02528"
-            />
+        {departmentLocations.length === 0 ? (
+          <div className="p-4 bg-yellow-50 rounded-md flex items-start gap-2 text-yellow-800">
+            <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">No departments found</p>
+              <p className="text-sm">Please add departments in the Department Management section first.</p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="longitude">Longitude</Label>
-            <Input
-              id="longitude"
-              type="text"
-              value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
-              placeholder="e.g., 80.2193408"
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="radius">Geofencing Radius (meters)</Label>
-          <Input
-            id="radius"
-            type="number"
-            value={radius}
-            onChange={(e) => setRadius(e.target.value)}
-            placeholder="e.g., 100"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            The radius (in meters) within which attendance can be marked
-          </p>
-        </div>
-        
-        <div className="flex gap-2 mt-4">
-          <Button onClick={getCurrentLocation} variant="outline" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Use Current Location
-          </Button>
-          <Button onClick={handleSaveLocation} className="flex items-center gap-2">
-            <Save className="h-4 w-4" />
-            Save Location
-          </Button>
-        </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="department-select">Select Department</Label>
+              <select 
+                id="department-select"
+                className="w-full p-2 border rounded-md"
+                value={selectedDepartment}
+                onChange={(e) => handleDepartmentChange(e.target.value)}
+              >
+                {departmentLocations.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input
+                  id="latitude"
+                  type="text"
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                  placeholder="e.g., 12.8396331"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input
+                  id="longitude"
+                  type="text"
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                  placeholder="e.g., 80.1552515"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="radius">Geofencing Radius (meters)</Label>
+              <Input
+                id="radius"
+                type="number"
+                value={radius}
+                onChange={(e) => setRadius(e.target.value)}
+                placeholder="e.g., 100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                The radius (in meters) within which attendance can be marked
+              </p>
+            </div>
+            
+            <div className="flex gap-2 mt-4">
+              <Button onClick={getCurrentLocation} variant="outline" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Use Current Location
+              </Button>
+              <Button onClick={handleSaveLocation} className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Save Location
+              </Button>
+            </div>
+          </>
+        )}
         
         <div className="p-4 bg-muted rounded-md mt-4">
           <p className="text-sm font-medium">Location Information</p>

@@ -5,15 +5,74 @@ import AttendanceForm from "@/components/AttendanceForm";
 import AttendanceHistory from "@/components/AttendanceHistory";
 import DailyAttendance from "@/components/DailyAttendance";
 import HourlyAttendance from "@/components/HourlyAttendance";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AttendancePage = () => {
   const { role } = useAuth();
+  const { toast } = useToast();
+
+  const handleRefreshLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          toast({
+            title: "Location Refreshed",
+            description: `Current coordinates: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
+          });
+        },
+        (error) => {
+          let errorMessage = "Unable to get your location.";
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Location access was denied. Please enable location services.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "The request to get your location timed out.";
+              break;
+          }
+          
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: errorMessage,
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Geolocation Not Supported",
+        description: "Your browser does not support geolocation.",
+      });
+    }
+  };
 
   return (
     <Layout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Attendance</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Attendance</h1>
+          <Button 
+            onClick={handleRefreshLocation} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh Location
+          </Button>
+        </div>
         
         <Tabs defaultValue="punch" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
