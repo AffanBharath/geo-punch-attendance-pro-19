@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, MapPin, AlertTriangle } from "lucide-react";
+import { Fingerprint, MapPin, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,6 +15,7 @@ const DailyAttendance = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [departmentLocation, setDepartmentLocation] = useState({ lat: 12.8396331, lng: 80.1552515 });
   const [geoFencingRadius, setGeoFencingRadius] = useState(100); // in meters
+  const [refreshingLocation, setRefreshingLocation] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -64,9 +65,9 @@ const DailyAttendance = () => {
     checkLocation();
   }, [user]);
 
-  const loadDepartmentLocation = () => {
+  const loadDepartmentLocation = useCallback(() => {
     // Get the user's department ID (in a real app this would come from user profile)
-    const userDeptId = "default-dept"; // Default for now
+    const userDeptId = user?.departmentId || "default-dept";
     
     // Load department locations
     const storedLocations = JSON.parse(localStorage.getItem("departmentLocations") || "[]");
@@ -75,10 +76,13 @@ const DailyAttendance = () => {
     if (userDept) {
       setDepartmentLocation({ lat: userDept.latitude, lng: userDept.longitude });
       setGeoFencingRadius(userDept.radius);
+      console.log("Department location loaded:", { lat: userDept.latitude, lng: userDept.longitude }, "radius:", userDept.radius);
+    } else {
+      console.log("Department not found, using default location");
     }
-  };
+  }, [user]);
 
-  const checkLocation = () => {
+  const checkLocation = useCallback(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -97,7 +101,14 @@ const DailyAttendance = () => {
             departmentLocation.lng
           );
           
-          setIsWithinRadius(distance <= geoFencingRadius);
+          const withinRadius = distance <= geoFencingRadius;
+          setIsWithinRadius(withinRadius);
+          
+          console.log("Current location:", currentLocation);
+          console.log("Department location:", departmentLocation);
+          console.log("Distance:", distance, "meters");
+          console.log("Geofencing radius:", geoFencingRadius, "meters");
+          console.log("Within radius:", withinRadius);
         },
         (error) => {
           let errorMessage = "Unable to get your location";
@@ -142,7 +153,7 @@ const DailyAttendance = () => {
         description: errorMessage,
       });
     }
-  };
+  }, [departmentLocation, geoFencingRadius, toast]);
 
   // Calculate distance between two points using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -231,14 +242,37 @@ const DailyAttendance = () => {
       checkLocation();
     }
   };
+  
+  const handleRefreshLocation = () => {
+    setRefreshingLocation(true);
+    loadDepartmentLocation();
+    setTimeout(() => {
+      checkLocation();
+      setRefreshingLocation(false);
+      toast({
+        title: "Location Refreshed",
+        description: "Your location has been refreshed"
+      });
+    }, 1000);
+  };
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Daily Attendance</CardTitle>
-        <CardDescription>
-          Mark your attendance for the day (9:00 AM - 3:15 PM)
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Daily Attendance</CardTitle>
+          <CardDescription>
+            Mark your attendance for the day (9:00 AM - 3:15 PM)
+          </CardDescription>
+        </div>
+        <Button 
+          variant="outline"
+          size="icon"
+          onClick={handleRefreshLocation}
+          disabled={refreshingLocation}
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshingLocation ? "animate-spin" : ""}`} />
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center space-y-6">
@@ -324,6 +358,12 @@ const DailyAttendance = () => {
               <div className="text-center text-sm text-muted-foreground">
                 <p>
                   Current coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                </p>
+                <p className="mt-1">
+                  Department coordinates: {departmentLocation.lat.toFixed(6)}, {departmentLocation.lng.toFixed(6)}
+                </p>
+                <p className="mt-1">
+                  Geofence radius: {geoFencingRadius} meters
                 </p>
               </div>
             )}
