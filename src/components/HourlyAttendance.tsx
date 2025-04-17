@@ -80,17 +80,17 @@ const HourlyAttendance = () => {
   }, [user]);
 
   const loadDepartmentLocation = useCallback(() => {
-    // Get the user's department ID (in a real app this would come from user profile)
-    const userDeptId = user?.departmentId || "default-dept";
+    // Get the user's department (in a real app this would come from user profile)
+    const userDept = user?.department || "default-dept";
     
     // Load department locations
     const storedLocations = JSON.parse(localStorage.getItem("departmentLocations") || "[]");
-    const userDept = storedLocations.find((dept: any) => dept.id === userDeptId) || null;
+    const userDeptLocation = storedLocations.find((dept: any) => dept.id === userDept) || null;
     
-    if (userDept) {
-      setDepartmentLocation({ lat: userDept.latitude, lng: userDept.longitude });
-      setGeoFencingRadius(userDept.radius);
-      console.log("Department location loaded:", { lat: userDept.latitude, lng: userDept.longitude }, "radius:", userDept.radius);
+    if (userDeptLocation) {
+      setDepartmentLocation({ lat: userDeptLocation.latitude, lng: userDeptLocation.longitude });
+      setGeoFencingRadius(userDeptLocation.radius);
+      console.log("Department location loaded:", { lat: userDeptLocation.latitude, lng: userDeptLocation.longitude }, "radius:", userDeptLocation.radius);
     } else {
       console.log("Department not found, using default location");
     }
