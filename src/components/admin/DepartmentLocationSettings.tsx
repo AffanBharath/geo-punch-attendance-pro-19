@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Save, AlertTriangle } from "lucide-react";
+import { MapPin, Save, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DepartmentLocation {
@@ -21,6 +21,7 @@ const DepartmentLocationSettings = () => {
   const [latitude, setLatitude] = useState<string>("12.8396331");
   const [longitude, setLongitude] = useState<string>("80.1552515");
   const [radius, setRadius] = useState<string>("100");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -104,6 +105,8 @@ const DepartmentLocationSettings = () => {
       return;
     }
     
+    setIsLoading(true);
+    
     // Update department location
     const updatedLocations = departmentLocations.map(dept => 
       dept.id === selectedDepartment 
@@ -114,14 +117,34 @@ const DepartmentLocationSettings = () => {
     setDepartmentLocations(updatedLocations);
     localStorage.setItem("departmentLocations", JSON.stringify(updatedLocations));
     
+    // Ensure the changes are reflected in the attendance components
+    // by updating the timestamp in localStorage
+    localStorage.setItem("locationLastUpdated", Date.now().toString());
+    
     toast({
       title: "Location Updated",
       description: "Department geolocation coordinates have been updated successfully."
     });
+    
+    setIsLoading(false);
+  };
+
+  const handleRefreshLocations = () => {
+    setIsLoading(true);
+    loadDepartmentLocations();
+    
+    setTimeout(() => {
+      toast({
+        title: "Locations Refreshed",
+        description: "Department locations have been refreshed successfully."
+      });
+      setIsLoading(false);
+    }, 500);
   };
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
+      setIsLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setLatitude(position.coords.latitude.toString());
@@ -131,6 +154,7 @@ const DepartmentLocationSettings = () => {
             title: "Current Location Detected",
             description: "Your current location has been set as the department location."
           });
+          setIsLoading(false);
         },
         (error) => {
           toast({
@@ -138,6 +162,7 @@ const DepartmentLocationSettings = () => {
             title: "Location Error",
             description: "Unable to get your current location. Please enter coordinates manually."
           });
+          setIsLoading(false);
         },
         {
           enableHighAccuracy: true,
@@ -156,14 +181,24 @@ const DepartmentLocationSettings = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <MapPin className="mr-2 h-5 w-5" />
-          Department Geolocation Settings
-        </CardTitle>
-        <CardDescription>
-          Set location coordinates and geofencing radius for each department
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center">
+            <MapPin className="mr-2 h-5 w-5" />
+            Department Geolocation Settings
+          </CardTitle>
+          <CardDescription>
+            Set location coordinates and geofencing radius for each department
+          </CardDescription>
+        </div>
+        <Button 
+          variant="outline"
+          size="icon"
+          onClick={handleRefreshLocations}
+          disabled={isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {departmentLocations.length === 0 ? (
@@ -183,10 +218,15 @@ const DepartmentLocationSettings = () => {
                 className="w-full p-2 border rounded-md"
                 value={selectedDepartment}
                 onChange={(e) => handleDepartmentChange(e.target.value)}
+                disabled={departmentLocations.length === 0}
               >
-                {departmentLocations.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
-                ))}
+                {departmentLocations.length > 0 ? (
+                  departmentLocations.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))
+                ) : (
+                  <option value="">No departments available</option>
+                )}
               </select>
             </div>
             
@@ -199,6 +239,7 @@ const DepartmentLocationSettings = () => {
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                   placeholder="e.g., 12.8396331"
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -209,6 +250,7 @@ const DepartmentLocationSettings = () => {
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                   placeholder="e.g., 80.1552515"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -221,6 +263,7 @@ const DepartmentLocationSettings = () => {
                 value={radius}
                 onChange={(e) => setRadius(e.target.value)}
                 placeholder="e.g., 100"
+                disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 The radius (in meters) within which attendance can be marked
@@ -228,13 +271,23 @@ const DepartmentLocationSettings = () => {
             </div>
             
             <div className="flex gap-2 mt-4">
-              <Button onClick={getCurrentLocation} variant="outline" className="flex items-center gap-2">
+              <Button 
+                onClick={getCurrentLocation} 
+                variant="outline" 
+                className="flex items-center gap-2"
+                disabled={isLoading}
+              >
                 <MapPin className="h-4 w-4" />
                 Use Current Location
               </Button>
-              <Button onClick={handleSaveLocation} className="flex items-center gap-2">
+              <Button 
+                onClick={handleSaveLocation} 
+                className="flex items-center gap-2"
+                disabled={isLoading}
+              >
                 <Save className="h-4 w-4" />
                 Save Location
+                {isLoading && <div className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>}
               </Button>
             </div>
           </>

@@ -15,18 +15,36 @@ const HourlyAttendance = () => {
   const [showBiometricScan, setShowBiometricScan] = useState(false);
   const [biometricAction, setBiometricAction] = useState<"check-in" | "check-out">("check-in");
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [departmentLocation, setDepartmentLocation] = useState({ lat: 12.8396331, lng: 80.1552515 });
+  const [geoFencingRadius, setGeoFencingRadius] = useState(100); // in meters
   const { toast } = useToast();
   const { user } = useAuth();
-
-  // Department location in Chennai - updated coordinates
-  const departmentLocation = { lat: 12.8396331, lng: 80.1552515 };
-  const geoFencingRadius = 100; // in meters
 
   // College working hours: 9 AM to 3:15 PM
   const workingHoursStart = 9; // 9 AM
   const workingHoursEnd = 15.25; // 3:15 PM
 
+  // Listen for location updates from admin
   useEffect(() => {
+    const checkLocationUpdates = () => {
+      const locationLastUpdated = localStorage.getItem("locationLastUpdated");
+      if (locationLastUpdated) {
+        loadDepartmentLocation();
+        checkLocation();
+      }
+    };
+
+    window.addEventListener("storage", checkLocationUpdates);
+
+    return () => {
+      window.removeEventListener("storage", checkLocationUpdates);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Load department location data
+    loadDepartmentLocation();
+    
     // Check if user is already checked in
     const checkExistingCheckIn = () => {
       const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
@@ -57,6 +75,24 @@ const HourlyAttendance = () => {
     checkExistingCheckIn();
     
     // Get current location
+    checkLocation();
+  }, [user]);
+
+  const loadDepartmentLocation = () => {
+    // Get the user's department ID (in a real app this would come from user profile)
+    const userDeptId = "default-dept"; // Default for now
+    
+    // Load department locations
+    const storedLocations = JSON.parse(localStorage.getItem("departmentLocations") || "[]");
+    const userDept = storedLocations.find((dept: any) => dept.id === userDeptId) || null;
+    
+    if (userDept) {
+      setDepartmentLocation({ lat: userDept.latitude, lng: userDept.longitude });
+      setGeoFencingRadius(userDept.radius);
+    }
+  };
+
+  const checkLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -120,7 +156,7 @@ const HourlyAttendance = () => {
         description: errorMessage,
       });
     }
-  }, [user]);
+  };
 
   // Calculate distance between two points using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -215,62 +251,7 @@ const HourlyAttendance = () => {
   const requestLocationPermission = () => {
     if (navigator.geolocation) {
       setLocationError(null);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const currentLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setLocation(currentLocation);
-          
-          // Check if within geofencing radius
-          const distance = calculateDistance(
-            currentLocation.lat,
-            currentLocation.lng,
-            departmentLocation.lat,
-            departmentLocation.lng
-          );
-          
-          setIsWithinRadius(distance <= geoFencingRadius);
-          
-          toast({
-            title: "Location Access Granted",
-            description: "Your location has been successfully detected.",
-          });
-        },
-        (error) => {
-          let errorMessage = "Unable to get your location";
-          
-          // Provide more specific error messages
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "Location access denied. Please enable location permissions in your browser settings to mark attendance.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Location information is unavailable. Please try again later.";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "Location request timed out. Please try again.";
-              break;
-            default:
-              errorMessage = `Unable to get your location: ${error.message}`;
-          }
-          
-          setLocationError(errorMessage);
-          setIsWithinRadius(false);
-          
-          toast({
-            variant: "destructive",
-            title: "Location Error",
-            description: errorMessage,
-          });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
+      checkLocation();
     }
   };
 
