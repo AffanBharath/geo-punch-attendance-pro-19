@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type UserRole = 'admin' | 'staff' | 'student' | null;
@@ -22,6 +21,7 @@ interface AuthContextType {
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (userData: Partial<User>) => void;
+  deviceId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,21 +38,42 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Generate a unique device ID
+const generateDeviceId = () => {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [deviceId] = useState<string>(() => {
+    const storedDeviceId = localStorage.getItem('deviceId');
+    if (storedDeviceId) return storedDeviceId;
+    
+    const newDeviceId = generateDeviceId();
+    localStorage.setItem('deviceId', newDeviceId);
+    return newDeviceId;
+  });
 
   useEffect(() => {
-    // Check localStorage for existing user data
+    // Check localStorage for existing user data and verify device ID
     const storedUser = localStorage.getItem('geoAttendanceUser');
-    if (storedUser) {
+    const storedDeviceId = localStorage.getItem('lastLoginDevice');
+    
+    if (storedUser && storedDeviceId) {
+      // If logged in from a different device, don't restore the session
+      if (storedDeviceId !== deviceId) {
+        logout();
+        return;
+      }
+      
       const userData = JSON.parse(storedUser);
       setUser(userData);
       setRole(userData.role);
       setIsAuthenticated(true);
     }
-  }, []);
+  }, [deviceId]);
 
   // Demo user data for different roles
   const demoUsers = {
@@ -85,13 +106,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (email: string, password: string, userRole: UserRole): Promise<boolean> => {
-    // In a real app, this would validate against an API
     if (!email || !password || !userRole) return false;
 
-    // For demo purposes, we'll accept any email/password for the selected role
     const roleUser = demoUsers[userRole as keyof typeof demoUsers];
 
     if (roleUser) {
+      // Store the current device ID as the last login device
+      localStorage.setItem('lastLoginDevice', deviceId);
+      
       setUser(roleUser);
       setRole(userRole);
       setIsAuthenticated(true);
@@ -107,6 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setRole(null);
     setIsAuthenticated(false);
     localStorage.removeItem('geoAttendanceUser');
+    localStorage.removeItem('lastLoginDevice');
   };
 
   const updateUserProfile = (userData: Partial<User>) => {
@@ -118,7 +141,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, isAuthenticated, login, logout, updateUserProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      role, 
+      isAuthenticated, 
+      login, 
+      logout, 
+      updateUserProfile,
+      deviceId 
+    }}>
       {children}
     </AuthContext.Provider>
   );
