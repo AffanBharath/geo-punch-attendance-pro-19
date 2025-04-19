@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -7,14 +6,14 @@ export type UserRole = 'admin' | 'staff' | 'student' | null;
 
 export interface AppUser {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
   role: UserRole;
-  department?: string;
-  joinDate?: string;
-  profilePic?: string;
-  studentId?: string;
-  staffId?: string;
+  department?: string | null;
+  joinDate?: string | null;
+  profilePic?: string | null;
+  studentId?: string | null;
+  staffId?: string | null;
 }
 
 interface AuthContextType {
@@ -156,13 +155,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateUserProfile = async (userData: Partial<User>) => {
+  const updateUserProfile = async (userData: Partial<AppUser>) => {
     if (!user?.id) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
-        .update(userData)
+        .update({
+          name: userData.name,
+          department: userData.department,
+          student_id: userData.studentId,
+          staff_id: userData.staffId,
+          profile_pic: userData.profilePic,
+          role: userData.role
+        })
         .eq('id', user.id);
 
       if (error) throw error;

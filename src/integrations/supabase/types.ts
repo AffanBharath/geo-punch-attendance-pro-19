@@ -16,7 +16,9 @@ export type Database = {
           id: string
           join_date: string | null
           name: string | null
+          profile_pic: string | null
           role: string | null
+          staff_id: string | null
           student_id: string | null
         }
         Insert: {
@@ -25,7 +27,9 @@ export type Database = {
           id: string
           join_date?: string | null
           name?: string | null
+          profile_pic?: string | null
           role?: string | null
+          staff_id?: string | null
           student_id?: string | null
         }
         Update: {
@@ -34,7 +38,9 @@ export type Database = {
           id?: string
           join_date?: string | null
           name?: string | null
+          profile_pic?: string | null
           role?: string | null
+          staff_id?: string | null
           student_id?: string | null
         }
         Relationships: []
