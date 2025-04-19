@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -52,12 +53,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event, session) => {
         setSession(session);
         if (session?.user) {
+          // Try to get profile from database
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
 
+          // If the profile exists in database, use it
           if (profile) {
             setUser({
               id: session.user.id,
@@ -72,6 +75,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
             setRole(profile.role as UserRole);
             setIsAuthenticated(true);
+          } 
+          // If profile doesn't exist but we have user metadata, create the profile
+          else if (session.user.user_metadata) {
+            const metadata = session.user.user_metadata;
+            
+            // Create a new profile
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                name: metadata.name,
+                email: session.user.email,
+                role: metadata.role || 'student',
+                department: metadata.department,
+                student_id: metadata.student_id,
+                staff_id: metadata.staff_id,
+              });
+
+            if (!insertError) {
+              setUser({
+                id: session.user.id,
+                name: metadata.name,
+                email: session.user.email!,
+                role: (metadata.role as UserRole) || 'student',
+                department: metadata.department,
+                studentId: metadata.student_id,
+                staffId: metadata.staff_id,
+              });
+              setRole((metadata.role as UserRole) || 'student');
+              setIsAuthenticated(true);
+            }
           }
         } else {
           setUser(null);

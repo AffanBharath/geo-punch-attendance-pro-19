@@ -60,33 +60,35 @@ const StudentLoginPage = () => {
     setIsLoading(true);
 
     try {
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+      // Step 1: Sign up the user with Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name,
+            department,
+            student_id: studentId,
+            role: 'student'
+          }
+        }
       });
 
       if (signUpError) throw signUpError;
 
-      if (user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            name,
-            email,
-            role: 'student',
-            department,
-            student_id: studentId,
-          });
-
-        if (profileError) throw profileError;
-
+      // Check if user was created successfully
+      if (data?.user) {
         toast({
           title: "Registration successful",
           description: "Welcome to SIST - MarkMe! Please check your email to verify your account.",
         });
 
-        // Don't navigate yet - wait for email verification
+        // Clear form fields after successful registration
+        setEmail("");
+        setPassword("");
+        setName("");
+        setStudentId("");
+        setDepartment("");
       }
     } catch (error) {
       console.error('Signup error:', error);
