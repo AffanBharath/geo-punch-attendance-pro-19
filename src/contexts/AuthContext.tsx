@@ -1,11 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'staff' | 'student' | null;
 
-export interface User {
+export interface AppUser {
   id: string;
   name: string;
   email: string;
@@ -18,12 +18,12 @@ export interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   role: UserRole;
   isAuthenticated: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => Promise<void>;
-  updateUserProfile: (userData: Partial<User>) => Promise<void>;
+  updateUserProfile: (userData: Partial<AppUser>) => Promise<void>;
   session: Session | null;
 }
 
@@ -42,7 +42,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -67,7 +67,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               role: profile.role as UserRole,
               department: profile.department,
               joinDate: profile.join_date,
-              studentId: profile.student_id
+              studentId: profile.student_id,
+              staffId: profile.staff_id,
+              profilePic: profile.profile_pic
             });
             setRole(profile.role as UserRole);
             setIsAuthenticated(true);
@@ -98,7 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 role: profile.role as UserRole,
                 department: profile.department,
                 joinDate: profile.join_date,
-                studentId: profile.student_id
+                studentId: profile.student_id,
+                staffId: profile.staff_id,
+                profilePic: profile.profile_pic
               });
               setRole(profile.role as UserRole);
               setIsAuthenticated(true);

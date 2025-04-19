@@ -5,7 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Menu, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useAuth, UserRole, AppUser } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 

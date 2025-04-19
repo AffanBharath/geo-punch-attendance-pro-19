@@ -1,10 +1,9 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fingerprint, MapPin, Clock, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, AppUser } from "@/contexts/AuthContext";
 
 const HourlyAttendance = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);

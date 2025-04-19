@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { 
   BookOpen, Fingerprint, Clock, UserRound, Calendar
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, AppUser } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {

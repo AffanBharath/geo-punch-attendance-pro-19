@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { 
   Users, Fingerprint, Clock, UserRound, Calendar, GraduationCap, FileSpreadsheet
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, AppUser } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
