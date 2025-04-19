@@ -2,17 +2,22 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { UserRound, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const StudentLoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [department, setDepartment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -23,7 +28,6 @@ const StudentLoginPage = () => {
     setIsLoading(true);
 
     try {
-      // Use student login
       const success = await login(email, password, "student");
       
       if (success) {
@@ -51,6 +55,51 @@ const StudentLoginPage = () => {
     }
   };
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) throw signUpError;
+
+      if (user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            name,
+            email,
+            role: 'student',
+            department,
+            student_id: studentId,
+          });
+
+        if (profileError) throw profileError;
+
+        toast({
+          title: "Registration successful",
+          description: "Welcome to SIST - MarkMe! Please check your email to verify your account.",
+        });
+
+        // Don't navigate yet - wait for email verification
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: "An error occurred during registration. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-4">
       <Card className="w-full max-w-md mx-auto">
@@ -66,47 +115,122 @@ const StudentLoginPage = () => {
           </div>
           <CardTitle className="text-2xl text-center text-student-primary">Student Portal</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access the student dashboard
+            Login or create your student account
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleLogin}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="student@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="border-student-primary/20 focus:border-student-primary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="border-student-primary/20 focus:border-student-primary"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-student-primary hover:bg-student-secondary" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Authenticating..." : "Sign In"}
-              </Button>
-              <div className="text-xs text-center text-muted-foreground mt-2">
-                Demo credentials: student@example.com / any password
-              </div>
-            </div>
-          </form>
+        <CardContent>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="student@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-student-primary hover:bg-student-secondary" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Authenticating..." : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="student@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="student-id">Student ID</Label>
+                  <Input
+                    id="student-id"
+                    type="text"
+                    placeholder="CS2023001"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    id="department"
+                    type="text"
+                    placeholder="Computer Science"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    required
+                    className="border-student-primary/20 focus:border-student-primary"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-student-primary hover:bg-student-secondary" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating Account..." : "Sign Up"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'staff' | 'student' | null;
 
@@ -19,9 +22,9 @@ interface AuthContextType {
   role: UserRole;
   isAuthenticated: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
-  logout: () => void;
-  updateUserProfile: (userData: Partial<User>) => void;
-  deviceId: string | null;
+  logout: () => Promise<void>;
+  updateUserProfile: (userData: Partial<User>) => Promise<void>;
+  session: Session | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,105 +41,131 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Generate a unique device ID
-const generateDeviceId = () => {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-};
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [deviceId] = useState<string>(() => {
-    const storedDeviceId = localStorage.getItem('deviceId');
-    if (storedDeviceId) return storedDeviceId;
-    
-    const newDeviceId = generateDeviceId();
-    localStorage.setItem('deviceId', newDeviceId);
-    return newDeviceId;
-  });
 
   useEffect(() => {
-    // Check localStorage for existing user data and verify device ID
-    const storedUser = localStorage.getItem('geoAttendanceUser');
-    const storedDeviceId = localStorage.getItem('lastLoginDevice');
-    
-    if (storedUser && storedDeviceId) {
-      // If logged in from a different device, don't restore the session
-      if (storedDeviceId !== deviceId) {
-        logout();
-        return;
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              name: profile.name,
+              email: session.user.email!,
+              role: profile.role as UserRole,
+              department: profile.department,
+              joinDate: profile.join_date,
+              studentId: profile.student_id
+            });
+            setRole(profile.role as UserRole);
+            setIsAuthenticated(true);
+          }
+        } else {
+          setUser(null);
+          setRole(null);
+          setIsAuthenticated(false);
+        }
       }
-      
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      setRole(userData.role);
-      setIsAuthenticated(true);
-    }
-  }, [deviceId]);
+    );
 
-  // Demo user data for different roles
-  const demoUsers = {
-    admin: {
-      id: "1",
-      name: "Admin User",
-      email: "admin@example.com",
-      role: "admin" as UserRole,
-      department: "Administration",
-      joinDate: "2022-01-01",
-    },
-    staff: {
-      id: "2",
-      name: "Staff User",
-      email: "staff@example.com",
-      role: "staff" as UserRole,
-      department: "Computer Science",
-      joinDate: "2022-05-15",
-      staffId: "STAFF001",
-    },
-    student: {
-      id: "3",
-      name: "Student User",
-      email: "student@example.com",
-      role: "student" as UserRole,
-      department: "Computer Science",
-      joinDate: "2023-08-01",
-      studentId: "CS2023001",
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSession(session);
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setUser({
+                id: session.user.id,
+                name: profile.name,
+                email: session.user.email!,
+                role: profile.role as UserRole,
+                department: profile.department,
+                joinDate: profile.join_date,
+                studentId: profile.student_id
+              });
+              setRole(profile.role as UserRole);
+              setIsAuthenticated(true);
+            }
+          });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
+    try {
+      const { data: { user: authUser }, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profile?.role !== role) {
+          await logout();
+          return false;
+        }
+
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
   };
 
-  const login = async (email: string, password: string, userRole: UserRole): Promise<boolean> => {
-    if (!email || !password || !userRole) return false;
-
-    const roleUser = demoUsers[userRole as keyof typeof demoUsers];
-
-    if (roleUser) {
-      // Store the current device ID as the last login device
-      localStorage.setItem('lastLoginDevice', deviceId);
-      
-      setUser(roleUser);
-      setRole(userRole);
-      setIsAuthenticated(true);
-      localStorage.setItem('geoAttendanceUser', JSON.stringify(roleUser));
-      return true;
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setRole(null);
+      setIsAuthenticated(false);
+      setSession(null);
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-    
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    setRole(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('geoAttendanceUser');
-    localStorage.removeItem('lastLoginDevice');
-  };
+  const updateUserProfile = async (userData: Partial<User>) => {
+    if (!user?.id) return;
 
-  const updateUserProfile = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem('geoAttendanceUser', JSON.stringify(updatedUser));
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(userData)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setUser(prev => prev ? { ...prev, ...userData } : null);
+    } catch (error) {
+      console.error('Update profile error:', error);
     }
   };
 
@@ -148,7 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       login, 
       logout, 
       updateUserProfile,
-      deviceId 
+      session 
     }}>
       {children}
     </AuthContext.Provider>
