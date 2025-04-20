@@ -21,7 +21,7 @@ interface AuthContextType {
   user: AppUser | null;
   role: UserRole;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<boolean>;
+  login: (identifier: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUserProfile: (userData: Partial<AppUser>) => Promise<void>;
   session: Session | null;
@@ -147,8 +147,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
+  const login = async (identifier: string, password: string, role: UserRole): Promise<boolean> => {
     try {
+      // If identifier doesn't look like an email, convert it to the email format
+      let email = identifier;
+      if (!email.includes('@')) {
+        email = `${identifier}@sist.edu`;
+      }
+
       const { data: { user: authUser }, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,

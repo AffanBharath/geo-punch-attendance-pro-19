@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +8,13 @@ import { useNavigate } from "react-router-dom";
 import { Users, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const StaffLoginPage = () => {
-  const [email, setEmail] = useState("");
+  const [staffCode, setStaffCode] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -23,7 +24,9 @@ const StaffLoginPage = () => {
     setIsLoading(true);
 
     try {
-      // Use staff login
+      // For demo purposes, we'll still use the email format behind the scenes
+      // In a real implementation, you'd modify the authentication backend
+      const email = `${staffCode}@sist.edu`; // Convert staff code to email format
       const success = await login(email, password, "staff");
       
       if (success) {
@@ -51,6 +54,41 @@ const StaffLoginPage = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // For demo purposes, convert staff code to email
+      const email = `${staffCode}@sist.edu`;
+      
+      // Call Supabase password reset
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Password reset email sent",
+        description: "Please check your email to reset your password.",
+      });
+      
+      setForgotPassword(false);
+    } catch (error) {
+      console.error('Reset password error:', error);
+      toast({
+        variant: "destructive",
+        title: "Password reset failed",
+        description: "An error occurred. Please verify your staff code and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-sky-50 p-4">
       <Card className="w-full max-w-md mx-auto">
@@ -70,43 +108,83 @@ const StaffLoginPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleLogin}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="staff@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="border-staff-primary/20 focus:border-staff-primary"
-                />
+          {forgotPassword ? (
+            <form onSubmit={handleForgotPassword}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="staffCode">Staff Code</Label>
+                  <Input
+                    id="staffCode"
+                    placeholder="Enter your staff code"
+                    value={staffCode}
+                    onChange={(e) => setStaffCode(e.target.value)}
+                    required
+                    className="border-staff-primary/20 focus:border-staff-primary"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-staff-primary hover:bg-staff-secondary" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processing..." : "Reset Password"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => setForgotPassword(false)}
+                >
+                  Back to Login
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="border-staff-primary/20 focus:border-staff-primary"
-                />
+            </form>
+          ) : (
+            <form onSubmit={handleLogin}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="staffCode">Staff Code</Label>
+                  <Input
+                    id="staffCode"
+                    placeholder="Enter your staff code"
+                    value={staffCode}
+                    onChange={(e) => setStaffCode(e.target.value)}
+                    required
+                    className="border-staff-primary/20 focus:border-staff-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="border-staff-primary/20 focus:border-staff-primary"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-staff-primary hover:bg-staff-secondary" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Authenticating..." : "Sign In"}
+                </Button>
+                <div className="text-xs text-center text-muted-foreground mt-2">
+                  Demo credentials: STAFF001 / password
+                </div>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full mt-2 text-staff-primary"
+                  onClick={() => setForgotPassword(true)}
+                >
+                  Forgot Password?
+                </Button>
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-staff-primary hover:bg-staff-secondary" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Authenticating..." : "Sign In"}
-              </Button>
-              <div className="text-xs text-center text-muted-foreground mt-2">
-                Demo credentials: staff@example.com / any password
-              </div>
-            </div>
-          </form>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

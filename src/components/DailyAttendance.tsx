@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, MapPin, AlertTriangle, RefreshCw } from "lucide-react";
+import { Fingerprint, MapPin, AlertTriangle, RefreshCw, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, AppUser } from "@/contexts/AuthContext";
 
@@ -15,12 +16,22 @@ const DailyAttendance = () => {
   const [departmentLocation, setDepartmentLocation] = useState({ lat: 12.8396331, lng: 80.1552515 });
   const [geoFencingRadius, setGeoFencingRadius] = useState(100); // in meters
   const [refreshingLocation, setRefreshingLocation] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // College working hours: 9 AM to 3:15 PM
-  const workingHoursStart = 9; // 9 AM
-  const workingHoursEnd = 15.25; // 3:15 PM
+  // Daily attendance window: 9:00 AM to 9:15 AM
+  const attendanceStartTime = 9 * 60; // 9:00 AM in minutes
+  const attendanceEndTime = 9 * 60 + 15; // 9:15 AM in minutes
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Listen for location updates from admin
   useEffect(() => {
@@ -171,11 +182,11 @@ const DailyAttendance = () => {
     return distance;
   };
 
-  // Check if current time is within working hours
-  const isWithinWorkingHours = () => {
-    const now = new Date();
-    const hours = now.getHours() + now.getMinutes() / 60;
-    return hours >= workingHoursStart && hours <= workingHoursEnd;
+  // Check if current time is within the attendance window (9:00-9:15 AM)
+  const isWithinAttendanceWindow = () => {
+    const now = currentTime;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    return currentMinutes >= attendanceStartTime && currentMinutes <= attendanceEndTime;
   };
 
   const handleInitiateBiometricScan = () => {
@@ -188,11 +199,11 @@ const DailyAttendance = () => {
       return;
     }
 
-    if (!isWithinWorkingHours()) {
+    if (!isWithinAttendanceWindow()) {
       toast({
         variant: "destructive",
-        title: "Outside Working Hours",
-        description: "Attendance can only be marked between 9:00 AM and 3:15 PM",
+        title: "Outside Attendance Window",
+        description: "Attendance can only be marked between 9:00 AM and 9:15 AM",
       });
       return;
     }
@@ -255,13 +266,18 @@ const DailyAttendance = () => {
     }, 1000);
   };
 
+  // Format time for display
+  const formatTimeWindow = () => {
+    return "9:00 AM - 9:15 AM";
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Daily Attendance</CardTitle>
           <CardDescription>
-            Mark your attendance for the day (9:00 AM - 3:15 PM)
+            Mark your attendance for the day ({formatTimeWindow()})
           </CardDescription>
         </div>
         <Button 
@@ -353,6 +369,20 @@ const DailyAttendance = () => {
               </div>
             )}
             
+            {/* Time status */}
+            <div className="flex items-center justify-center space-x-2 text-sm">
+              <Clock className={`h-4 w-4 ${
+                isWithinAttendanceWindow() 
+                  ? "text-green-500" 
+                  : "text-amber-500"
+              }`} />
+              <span>
+                {isWithinAttendanceWindow()
+                  ? "Attendance window is open"
+                  : `Attendance window: ${formatTimeWindow()}`}
+              </span>
+            </div>
+            
             {location && !locationError && (
               <div className="text-center text-sm text-muted-foreground">
                 <p>
@@ -388,17 +418,17 @@ const DailyAttendance = () => {
             ) : (
               <Button
                 className="w-full"
-                disabled={loading || !location || !isWithinRadius || !isWithinWorkingHours() || !!locationError}
+                disabled={loading || !location || !isWithinRadius || !isWithinAttendanceWindow() || !!locationError}
                 onClick={handleInitiateBiometricScan}
               >
                 Scan Fingerprint
               </Button>
             )}
             
-            {!locationError && !isWithinWorkingHours() && location && (
+            {!locationError && !isWithinAttendanceWindow() && location && (
               <div className="bg-yellow-50 border border-yellow-200 rounded p-4 text-center mt-4">
                 <p className="text-yellow-700 text-sm">
-                  Note: Attendance can only be marked during college hours (9:00 AM - 3:15 PM)
+                  Note: Attendance can only be marked during the window {formatTimeWindow()}
                 </p>
               </div>
             )}
