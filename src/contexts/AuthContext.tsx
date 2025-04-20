@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -89,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               studentId: profile.student_id,
               staffId: profile.staff_id,
               profilePic: profile.profile_pic,
-              lastLoginIp: ipAddress || undefined,
+              lastLoginIp: ipAddress || profile.last_login_ip,
               lastLoginTime: new Date().toISOString()
             });
             setRole(profile.role as UserRole);
