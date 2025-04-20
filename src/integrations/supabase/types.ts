@@ -15,6 +15,8 @@ export type Database = {
           email: string | null
           id: string
           join_date: string | null
+          last_login_ip: string | null
+          last_login_time: string | null
           name: string | null
           profile_pic: string | null
           role: string | null
@@ -26,6 +28,8 @@ export type Database = {
           email?: string | null
           id: string
           join_date?: string | null
+          last_login_ip?: string | null
+          last_login_time?: string | null
           name?: string | null
           profile_pic?: string | null
           role?: string | null
@@ -37,6 +41,8 @@ export type Database = {
           email?: string | null
           id?: string
           join_date?: string | null
+          last_login_ip?: string | null
+          last_login_time?: string | null
           name?: string | null
           profile_pic?: string | null
           role?: string | null
