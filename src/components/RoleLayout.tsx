@@ -94,7 +94,7 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
             >
               <Avatar className="h-8 w-8">
                 {user?.profilePic ? (
-                  <AvatarImage src={user.profilePic} />
+                  <AvatarImage src={user.profilePic} alt={user?.name || "User"} />
                 ) : (
                   <AvatarFallback className={`bg-${roleColor} text-white`}>
                     {initials}
@@ -139,13 +139,21 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
                   <p className="text-sm font-medium text-muted-foreground">Email</p>
                   <p className="font-medium">{user?.email || "Not provided"}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">ID</p>
-                  <p className="font-medium">{user?.studentId || user?.staffId || user?.id || "Not provided"}</p>
-                </div>
+                {role === 'staff' && (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Staff ID</p>
+                    <p className="font-medium">{user?.staffId || "Not provided"}</p>
+                  </div>
+                )}
+                {role === 'student' && (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Register Number</p>
+                    <p className="font-medium">{user?.studentId || "Not provided"}</p>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Role</p>
-                  <p className="font-medium">{user?.role || "Not provided"}</p>
+                  <p className="font-medium capitalize">{user?.role || "Not provided"}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Department</p>
@@ -154,6 +162,11 @@ const RoleLayout: React.FC<RoleLayoutProps> = ({ children }) => {
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Join Date</p>
                   <p className="font-medium">{user?.joinDate || "Not provided"}</p>
+                </div>
+                {/* Display IP address for tracking */}
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Device Info</p>
+                  <p className="font-medium text-xs">Logged in on this device</p>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
@@ -9,7 +9,6 @@ import {
   Settings, Shield, GraduationCap, Calendar, ClipboardList, Building
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { useAuth, UserRole, AppUser } from "@/contexts/AuthContext";
 
 interface RoleSidebarProps {
@@ -23,8 +22,8 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     
     toast({
       title: "Logged out successfully",
@@ -83,7 +82,7 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
             path: "/staff/students",
           },
           {
-            title: "My Attendance",
+            title: "Attendance",
             icon: <Fingerprint className="h-5 w-5" />,
             path: "/staff/attendance",
           },
@@ -93,9 +92,9 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
             path: "/staff/od-requests",
           },
           {
-            title: "Salary",
-            icon: <Calendar className="h-5 w-5" />,
-            path: "/salary",
+            title: "Reports",
+            icon: <FileSpreadsheet className="h-5 w-5" />,
+            path: "/staff/reports",
           }
         ];
       case 'student':

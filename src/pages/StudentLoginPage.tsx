@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +16,41 @@ const StudentLoginPage = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [ipAddress, setIpAddress] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Get client IP for fraud prevention
+  useEffect(() => {
+    const getClientIP = async () => {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        setIpAddress(data.ip);
+        // Store in localStorage for checking
+        localStorage.setItem('userIP', data.ip);
+      } catch (error) {
+        console.error('Error fetching IP', error);
+      }
+    };
+    
+    getClientIP();
+    
+    // Check if current IP matches stored IP
+    const checkPreviousLogin = () => {
+      const previousLoginIP = localStorage.getItem('lastLoginIP');
+      const currentUserID = localStorage.getItem('currentUserID');
+      // If different user is trying to login from same device
+      if (previousLoginIP && currentUserID && previousLoginIP === ipAddress) {
+        console.log('Same device used for multiple logins detected');
+      }
+    };
+    
+    if (ipAddress) {
+      checkPreviousLogin();
+    }
+  }, [ipAddress]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +63,12 @@ const StudentLoginPage = () => {
       const success = await login(email, password, "student");
       
       if (success) {
+        // Record login IP and time for security
+        if (ipAddress) {
+          localStorage.setItem('lastLoginIP', ipAddress);
+          localStorage.setItem('lastLoginTime', new Date().toISOString());
+        }
+        
         toast({
           title: "Login successful",
           description: "Welcome to SIST - MarkMe Student Portal!",

@@ -23,10 +23,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  attendance: number;
+  cgpa: string;
+  phone: string;
+}
+
 const StudentsByYearPage = () => {
   const { departmentId, year, section } = useParams();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<keyof Student | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Convert year parameter to display format
   const yearDisplay = year === "1st" ? "1st Year" : 
@@ -45,7 +56,7 @@ const StudentsByYearPage = () => {
           : "Information Technology";
   
   // Generate mock student data
-  const generateStudents = () => {
+  const generateStudents = (): Student[] => {
     const students = [];
     const firstNames = ["John", "Jane", "Michael", "Emily", "David", "Sarah", "Robert", "Emma", "James", "Olivia"];
     const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Garcia", "Wilson", "Anderson"];
@@ -55,7 +66,7 @@ const StudentsByYearPage = () => {
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
       
       students.push({
-        id: `${departmentId.toUpperCase()}${year[0]}${section}${i.toString().padStart(2, '0')}`,
+        id: `${departmentId?.toUpperCase() || 'CS'}${year?.[0] || '1'}${section || 'A'}${i.toString().padStart(2, '0')}`,
         name: `${firstName} ${lastName}`,
         email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@university.edu`,
         attendance: Math.floor(Math.random() * 21) + 80, // 80-100%
@@ -69,12 +80,51 @@ const StudentsByYearPage = () => {
   
   const students = generateStudents();
   
+  // Sort students based on selected field and direction
+  const sortStudents = (field: keyof Student) => {
+    if (sortField === field) {
+      // Toggle direction if already sorting by this field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, start with ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Apply sorting to students
+  const sortedStudents = [...students].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    const aValue = a[sortField];
+    const bValue = b[sortField];
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc'
+        ? aValue - bValue
+        : bValue - aValue;
+    }
+    
+    return 0;
+  });
+  
   // Filter students based on search query
-  const filteredStudents = students.filter(student => 
+  const filteredStudents = sortedStudents.filter(student => 
     student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Handler to navigate to student detail view
+  const handleViewStudentDetails = (studentId: string) => {
+    navigate(`/staff/students/${studentId}`);
+  };
 
   return (
     <RoleLayout>
@@ -130,10 +180,18 @@ const StudentsByYearPage = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Sort by Name</DropdownMenuItem>
-                  <DropdownMenuItem>Sort by ID</DropdownMenuItem>
-                  <DropdownMenuItem>Sort by Attendance</DropdownMenuItem>
-                  <DropdownMenuItem>Sort by CGPA</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => sortStudents('name')}>
+                    Sort by Name {sortField === 'name' && (sortDirection === 'asc' ? '(A-Z)' : '(Z-A)')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => sortStudents('id')}>
+                    Sort by ID {sortField === 'id' && (sortDirection === 'asc' ? '(A-Z)' : '(Z-A)')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => sortStudents('attendance')}>
+                    Sort by Attendance {sortField === 'attendance' && (sortDirection === 'asc' ? '(Low-High)' : '(High-Low)')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => sortStudents('cgpa')}>
+                    Sort by CGPA {sortField === 'cgpa' && (sortDirection === 'asc' ? '(Low-High)' : '(High-Low)')}
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -142,11 +200,19 @@ const StudentsByYearPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => sortStudents('id')}>
+                    ID {sortField === 'id' && <ArrowUpDown className="h-4 w-4 inline ml-1" />}
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => sortStudents('name')}>
+                    Name {sortField === 'name' && <ArrowUpDown className="h-4 w-4 inline ml-1" />}
+                  </TableHead>
                   <TableHead className="hidden md:table-cell">Email</TableHead>
-                  <TableHead className="text-right">Attendance</TableHead>
-                  <TableHead className="text-right">CGPA</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => sortStudents('attendance')}>
+                    Attendance {sortField === 'attendance' && <ArrowUpDown className="h-4 w-4 inline ml-1" />}
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => sortStudents('cgpa')}>
+                    CGPA {sortField === 'cgpa' && <ArrowUpDown className="h-4 w-4 inline ml-1" />}
+                  </TableHead>
                   <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -177,7 +243,7 @@ const StudentsByYearPage = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => navigate(`/staff/students/${student.id}`)}
+                        onClick={() => handleViewStudentDetails(student.id)}
                       >
                         Details
                       </Button>

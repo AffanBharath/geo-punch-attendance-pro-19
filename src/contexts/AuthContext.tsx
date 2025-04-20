@@ -15,6 +15,8 @@ export interface AppUser {
   profilePic?: string | null;
   studentId?: string | null;
   staffId?: string | null;
+  lastLoginIp?: string | null;
+  lastLoginTime?: string | null;
 }
 
 interface AuthContextType {
@@ -46,6 +48,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [ipAddress, setIpAddress] = useState<string | null>(null);
+
+  // Get client IP for fraud prevention
+  useEffect(() => {
+    const getClientIP = async () => {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        setIpAddress(data.ip);
+      } catch (error) {
+        console.error('Error fetching IP', error);
+      }
+    };
+    
+    getClientIP();
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -71,10 +89,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               joinDate: profile.join_date,
               studentId: profile.student_id,
               staffId: profile.staff_id,
-              profilePic: profile.profile_pic
+              profilePic: profile.profile_pic,
+              lastLoginIp: ipAddress || undefined,
+              lastLoginTime: new Date().toISOString()
             });
             setRole(profile.role as UserRole);
             setIsAuthenticated(true);
+            
+            // Record last login in localStorage for tracking
+            if (ipAddress) {
+              localStorage.setItem('lastLoginIP', ipAddress);
+              localStorage.setItem('lastLoginTime', new Date().toISOString());
+              localStorage.setItem('currentUserID', session.user.id);
+              
+              // Update profile with login info if needed
+              await supabase
+                .from('profiles')
+                .update({
+                  last_login_ip: ipAddress,
+                  last_login_time: new Date().toISOString()
+                })
+                .eq('id', session.user.id);
+            }
           } 
           // If profile doesn't exist but we have user metadata, create the profile
           else if (session.user.user_metadata) {
@@ -91,6 +127,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 department: metadata.department,
                 student_id: metadata.student_id,
                 staff_id: metadata.staff_id,
+                last_login_ip: ipAddress,
+                last_login_time: new Date().toISOString()
               });
 
             if (!insertError) {
@@ -102,15 +140,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 department: metadata.department,
                 studentId: metadata.student_id,
                 staffId: metadata.staff_id,
+                lastLoginIp: ipAddress || undefined,
+                lastLoginTime: new Date().toISOString()
               });
               setRole((metadata.role as UserRole) || 'student');
               setIsAuthenticated(true);
+              
+              // Record login in localStorage for tracking
+              if (ipAddress) {
+                localStorage.setItem('lastLoginIP', ipAddress);
+                localStorage.setItem('lastLoginTime', new Date().toISOString());
+                localStorage.setItem('currentUserID', session.user.id);
+              }
             }
           }
         } else {
           setUser(null);
           setRole(null);
           setIsAuthenticated(false);
+          // Clear login tracking data
+          localStorage.removeItem('lastLoginIP');
+          localStorage.removeItem('lastLoginTime');
+          localStorage.removeItem('currentUserID');
         }
       }
     );
@@ -135,17 +186,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 joinDate: profile.join_date,
                 studentId: profile.student_id,
                 staffId: profile.staff_id,
-                profilePic: profile.profile_pic
+                profilePic: profile.profile_pic,
+                lastLoginIp: profile.last_login_ip || ipAddress,
+                lastLoginTime: profile.last_login_time || new Date().toISOString()
               });
               setRole(profile.role as UserRole);
               setIsAuthenticated(true);
+              
+              // Record login in localStorage for tracking
+              if (ipAddress) {
+                localStorage.setItem('currentUserID', session.user.id);
+              }
             }
           });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [ipAddress]);
 
   const login = async (identifier: string, password: string, role: UserRole): Promise<boolean> => {
     try {
@@ -153,6 +211,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       let email = identifier;
       if (!email.includes('@')) {
         email = `${identifier}@sist.edu`;
+      }
+
+      // Check for multiple logins on the same device
+      const currentLoginIP = ipAddress;
+      const previousLoginIP = localStorage.getItem('lastLoginIP');
+      const currentUserID = localStorage.getItem('currentUserID');
+      
+      if (previousLoginIP && currentUserID && previousLoginIP === currentLoginIP && 
+          localStorage.getItem('isActiveSession') === 'true') {
+        console.log('Warning: Attempting to login with different credentials from same device');
+        // In a real system, you might want to enforce additional security here
       }
 
       const { data: { user: authUser }, error: signInError } = await supabase.auth.signInWithPassword({
@@ -173,7 +242,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await logout();
           return false;
         }
-
+        
+        // Mark session as active
+        localStorage.setItem('isActiveSession', 'true');
         return true;
       }
       return false;
@@ -185,11 +256,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Mark session as inactive
+      localStorage.setItem('isActiveSession', 'false');
       await supabase.auth.signOut();
       setUser(null);
       setRole(null);
       setIsAuthenticated(false);
       setSession(null);
+      // Clear login tracking data
+      localStorage.removeItem('currentUserID');
     } catch (error) {
       console.error('Logout error:', error);
     }
