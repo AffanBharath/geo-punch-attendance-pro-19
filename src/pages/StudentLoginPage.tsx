@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { UserRound, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
 const StudentLoginPage = () => {
@@ -16,59 +17,23 @@ const StudentLoginPage = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
-  const [ipAddress, setIpAddress] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [signupRegisterNumber, setSignupRegisterNumber] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  // Get client IP for fraud prevention
-  useEffect(() => {
-    const getClientIP = async () => {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        setIpAddress(data.ip);
-        // Store in localStorage for checking
-        localStorage.setItem('userIP', data.ip);
-      } catch (error) {
-        console.error('Error fetching IP', error);
-      }
-    };
-    
-    getClientIP();
-    
-    // Check if current IP matches stored IP
-    const checkPreviousLogin = () => {
-      const previousLoginIP = localStorage.getItem('lastLoginIP');
-      const currentUserID = localStorage.getItem('currentUserID');
-      // If different user is trying to login from same device
-      if (previousLoginIP && currentUserID && previousLoginIP === ipAddress) {
-        console.log('Same device used for multiple logins detected');
-      }
-    };
-    
-    if (ipAddress) {
-      checkPreviousLogin();
-    }
-  }, [ipAddress]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // For demo purposes, we'll still use the email format behind the scenes
-      // In a real implementation, you'd modify the authentication backend
-      const email = `${registerNumber}@sist.edu`; // Convert register number to email format
+      const email = `${registerNumber}@sist.edu`;
       const success = await login(email, password, "student");
       
       if (success) {
-        // Record login IP and time for security
-        if (ipAddress) {
-          localStorage.setItem('lastLoginIP', ipAddress);
-          localStorage.setItem('lastLoginTime', new Date().toISOString());
-        }
-        
         toast({
           title: "Login successful",
           description: "Welcome to SIST - MarkMe Student Portal!",
@@ -93,35 +58,66 @@ const StudentLoginPage = () => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-      // For demo purposes, convert register number to email
-      const email = `${registerNumber}@sist.edu`;
-      
-      // Call Supabase password reset
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password',
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email to reset your password.",
-      });
-      
-      setForgotPassword(false);
-    } catch (error) {
-      console.error('Reset password error:', error);
+    if (signupPassword !== signupConfirmPassword) {
       toast({
         variant: "destructive",
-        title: "Password reset failed",
-        description: "An error occurred. Please verify your register number and try again.",
+        title: "Passwords don't match",
+        description: "Please ensure both passwords are the same",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const email = `${signupRegisterNumber}@sist.edu`;
+      
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('register_number')
+        .eq('register_number', signupRegisterNumber)
+        .single();
+
+      if (existing) {
+        toast({
+          variant: "destructive",
+          title: "Registration failed",
+          description: "This register number is already registered",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: signupPassword,
+        options: {
+          data: {
+            register_number: signupRegisterNumber,
+            role: 'student'
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      if (signUpData) {
+        toast({
+          title: "Registration successful",
+          description: "Your student account has been created. Please login.",
+        });
+        setActiveTab("login");
+        setRegisterNumber(signupRegisterNumber);
+        setPassword("");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Registration error",
+        description: "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -147,79 +143,86 @@ const StudentLoginPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {forgotPassword ? (
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-number">Register Number</Label>
-                <Input
-                  id="register-number"
-                  placeholder="Enter your register number"
-                  value={registerNumber}
-                  onChange={(e) => setRegisterNumber(e.target.value)}
-                  required
-                  className="border-student-primary/20 focus:border-student-primary"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-student-primary hover:bg-student-secondary" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Processing..." : "Reset Password"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full mt-2"
-                onClick={() => setForgotPassword(false)}
-              >
-                Back to Login
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-number">Register Number</Label>
-                <Input
-                  id="register-number"
-                  placeholder="Enter your register number"
-                  value={registerNumber}
-                  onChange={(e) => setRegisterNumber(e.target.value)}
-                  required
-                  className="border-student-primary/20 focus:border-student-primary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="border-student-primary/20 focus:border-student-primary"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-student-primary hover:bg-student-secondary" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Authenticating..." : "Sign In"}
-              </Button>
-              <div className="text-xs text-center text-muted-foreground mt-2">
-                Demo credentials: CS22001 / password
-              </div>
-              <Button
-                type="button"
-                variant="link"
-                className="w-full mt-2 text-student-primary"
-                onClick={() => setForgotPassword(true)}
-              >
-                Forgot Password?
-              </Button>
-            </form>
-          )}
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-number">Register Number</Label>
+                  <Input
+                    id="register-number"
+                    placeholder="Enter your register number"
+                    value={registerNumber}
+                    onChange={(e) => setRegisterNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-student-primary hover:bg-student-secondary" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Authenticating..." : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="register">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-register-number">Register Number</Label>
+                  <Input
+                    id="signup-register-number"
+                    placeholder="Enter your register number"
+                    value={signupRegisterNumber}
+                    onChange={(e) => setSignupRegisterNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-student-primary hover:bg-student-secondary" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating Account..." : "Sign Up"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

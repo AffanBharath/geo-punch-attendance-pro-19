@@ -19,6 +19,7 @@ export type Database = {
           last_login_time: string | null
           name: string | null
           profile_pic: string | null
+          register_number: string | null
           role: string | null
           staff_id: string | null
           student_id: string | null
@@ -32,6 +33,7 @@ export type Database = {
           last_login_time?: string | null
           name?: string | null
           profile_pic?: string | null
+          register_number?: string | null
           role?: string | null
           staff_id?: string | null
           student_id?: string | null
@@ -45,6 +47,7 @@ export type Database = {
           last_login_time?: string | null
           name?: string | null
           profile_pic?: string | null
+          register_number?: string | null
           role?: string | null
           staff_id?: string | null
           student_id?: string | null
