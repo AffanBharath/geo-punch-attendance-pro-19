@@ -56,6 +56,9 @@ const StudentDashboardPage = () => {
     total: 170
   };
 
+  // The user's initial if available, or a fallback
+  const userInitial = user?.name ? user.name.charAt(0) : 'S';
+
   return (
     <RoleLayout>
       <div className="space-y-6">
@@ -72,12 +75,12 @@ const StudentDashboardPage = () => {
             <CardContent>
               <div className="flex items-center space-x-4 cursor-pointer" onClick={() => setProfileOpen(true)}>
                 <div className="h-14 w-14 rounded-full bg-student-accent flex items-center justify-center text-student-primary text-lg font-semibold">
-                  {user?.name.charAt(0)}
+                  {userInitial}
                 </div>
                 <div>
-                  <p className="text-lg font-bold">{user?.name}</p>
-                  <p className="text-sm text-muted-foreground">ID: {user?.studentId}</p>
-                  <p className="text-sm text-muted-foreground">{user?.department}</p>
+                  <p className="text-lg font-bold">{user?.name || "Student"}</p>
+                  <p className="text-sm text-muted-foreground">ID: {user?.studentId || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">{user?.department || "Department"}</p>
                 </div>
               </div>
             </CardContent>
@@ -278,7 +281,7 @@ const StudentDashboardPage = () => {
             <div className="space-y-4 py-4">
               <div className="flex justify-center">
                 <div className="h-24 w-24 rounded-full bg-student-accent flex items-center justify-center text-student-primary text-2xl font-semibold">
-                  {user?.name.charAt(0)}
+                  {userInitial}
                 </div>
               </div>
               <div className="space-y-3">

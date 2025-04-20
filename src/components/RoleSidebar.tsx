@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,7 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
 
   const menuItems = getMenuItems();
   const roleColor = getRoleColor();
+  const userInitial = user?.name ? user.name.charAt(0) : 'U';
 
   return (
     <div
@@ -174,10 +176,10 @@ const RoleSidebar = ({ role }: RoleSidebarProps) => {
           <div className="px-4 mb-6">
             <div className="flex items-center space-x-3 mb-2">
               <div className={`h-8 w-8 rounded-full bg-${roleColor} flex items-center justify-center text-white`}>
-                {user?.name.charAt(0)}
+                {userInitial}
               </div>
               <div className="overflow-hidden">
-                <p className="font-medium truncate">{user?.name}</p>
+                <p className="font-medium truncate">{user?.name || "User"}</p>
                 <p className="text-xs text-muted-foreground capitalize">{role}</p>
               </div>
             </div>
