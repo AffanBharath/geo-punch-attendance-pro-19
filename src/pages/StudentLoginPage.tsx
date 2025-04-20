@@ -16,9 +16,9 @@ const StudentLoginPage = () => {
   const [registerNumber, setRegisterNumber] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [forgotPassword, setForgotPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [signupRegisterNumber, setSignupRegisterNumber] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const { toast } = useToast();
@@ -73,8 +73,6 @@ const StudentLoginPage = () => {
     }
 
     try {
-      const email = `${signupRegisterNumber}@sist.edu`;
-      
       const { data: existing } = await supabase
         .from('profiles')
         .select('register_number')
@@ -92,7 +90,7 @@ const StudentLoginPage = () => {
       }
 
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: signupEmail,
         password: signupPassword,
         options: {
           data: {
@@ -190,6 +188,17 @@ const StudentLoginPage = () => {
                     placeholder="Enter your register number"
                     value={signupRegisterNumber}
                     onChange={(e) => setSignupRegisterNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
                     required
                   />
                 </div>
